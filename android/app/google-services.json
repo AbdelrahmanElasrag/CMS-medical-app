@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "997465508524",
+    "project_id": "just-palace-456915-j9",
+    "storage_bucket": "just-palace-456915-j9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:997465508524:android:7977b6c869107ff3bfed09",
+        "android_client_info": {
+          "package_name": "com.example.cms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD83bovFsiMvAKJ65Nr1-HFCy9Z_7RP_n4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
