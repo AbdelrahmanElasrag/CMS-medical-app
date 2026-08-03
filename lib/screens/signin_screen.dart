@@ -1,29 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cms/theme/theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../theme/app_tokens.dart';
+import '../ui/auth_form_styles.dart';
+import '../ui/mobadra_motion.dart';
+import '../ui/mobadra_surface.dart';
+import '../ui/mobadra_toast.dart';
 import '../widgets/custom_scaffold.dart';
-import 'home_screen.dart';
+import 'forget_password.dart';
 import 'signup_screen.dart';
-import 'admin_screen.dart';
 
 class SignInScreen extends StatefulWidget {
-  final String? prefillFirstName;
-  final String? prefillLastName;
-  final String? prefillPhone;
-  final String? prefillNationalId;
-  final String? prefillInsuranceStatus;
-
-  const SignInScreen({
-    super.key,
-    this.prefillFirstName,
-    this.prefillLastName,
-    this.prefillPhone,
-    this.prefillNationalId,
-    this.prefillInsuranceStatus,
-  });
+  const SignInScreen({super.key});
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -31,294 +21,245 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   final _formSignInKey = GlobalKey<FormState>();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController nationalIdController = TextEditingController();
-
-  String _verificationId = '';
-  bool rememberPassword = false;
-  bool isAdminSignIn = false;
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _loading = false;
+  bool _obscurePassword = true;
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.prefillPhone != null) {
-      phoneController.text = widget.prefillPhone!;
-    }
-    if (widget.prefillNationalId != null) {
-      nationalIdController.text = widget.prefillNationalId!;
-    }
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
-  Future<void> saveLoginState(String phone, String nationalId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', true);
-    await prefs.setString('phone', phone);
-    await prefs.setString('nationalId', nationalId);
-  }
-
-  Future<void> _checkNationalId(String phone, String nationalId, BuildContext context) async {
-    final userSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('phone', isEqualTo: phone)
-        .where('nationalId', isEqualTo: nationalId)
-        .get();
-
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).get();
-
-    if (!userDoc.exists) {
-      await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).set({
-        'firstName': widget.prefillFirstName ?? '',
-        'lastName': widget.prefillLastName ?? '',
-        'phone': phone,
-        'nationalId': nationalId,
-        'insuranceStatus': widget.prefillInsuranceStatus ?? 'Ongoing',
-        'points': 0,
-        'qrCodeData': currentUser.uid,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    }
-
-    if (userSnapshot.docs.isNotEmpty) {
-      final userData = userSnapshot.docs.first.data();
-      if (rememberPassword) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', false);
-        await prefs.setString('phone', phone);
-        await prefs.setString('nationalId', nationalId);
-      }
-      if (isAdminSignIn) {
-        final adminCollection = await FirebaseFirestore.instance.collection('admin').get();
-        String? matchedAdminId;
-        for (final doc in adminCollection.docs) {
-          final data = doc.data();
-          if (data['phone'] == phone && data['nationalId'] == nationalId) {
-            matchedAdminId = doc.id;
-            break;
-          }
-        }
-        if (matchedAdminId != null) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => AdminScreen(adminId: matchedAdminId!)),
-          );
-          return;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not an admin account.')));
-          return;
-        }
-      }
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomeScreen(username: '${userData['firstName']}', points: userData['points']),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('National ID not matched with phone number.')));
-    }
-  }
-
-  void _showOTPDialog(BuildContext context, String verificationId, String phone, String nationalId) {
-    final TextEditingController otpController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Enter OTP'),
-        content: TextField(
-          controller: otpController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'OTP Code'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              final smsCode = otpController.text.trim();
-              final credential = PhoneAuthProvider.credential(verificationId: verificationId, smsCode: smsCode);
-              try {
-                await FirebaseAuth.instance.signInWithCredential(credential);
-                Navigator.of(context).pop();
-                await _checkNationalId(phone, nationalId, context);
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid OTP')));
-              }
-            },
-            child: const Text('Verify'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _signIn(BuildContext context) async {
+  Future<void> _signIn() async {
     if (!_formSignInKey.currentState!.validate()) return;
-    String rawPhone = phoneController.text.trim();
-    String nationalId = nationalIdController.text.trim();
-    if (!rawPhone.startsWith('+')) {
-      rawPhone = '+$rawPhone';
-    }
-    String phoneNumber = rawPhone;
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text;
+    setState(() => _loading = true);
     try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: phoneNumber,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await FirebaseAuth.instance.signInWithCredential(credential);
-          await _checkNationalId(phoneNumber, nationalId, context);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification failed: ${e.message}')));
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          _verificationId = verificationId;
-          _showOTPDialog(context, verificationId, phoneNumber, nationalId);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          _verificationId = verificationId;
-        },
-      );
+      await context.read<AuthService>().login(phone, password);
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      mobadraToast(context, e.message, error: true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (!mounted) return;
+      mobadraToast(context, 'Login failed: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
+
+  static const _buttonBlue = Color(0xFF003D7A);
 
   @override
   Widget build(BuildContext context) {
-    // The CustomScaffold now automatically handles the back button because its
-    // AppBar knows that this screen can be popped. No extra code is needed here.
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return CustomScaffold(
-      child: Column(
-        children: [
-          const Expanded(flex: 1, child: SizedBox(height: 10)),
-          Expanded(
-            flex: 7,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(25.0, 50.0, 25.0, 20.0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40.0),
-                  topRight: Radius.circular(40.0),
-                ),
-              ),
-              child: SingleChildScrollView(
-                child: Form(
-                  key: _formSignInKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Welcome back',
-                        style: TextStyle(
-                          fontSize: 30.0,
-                          fontWeight: FontWeight.w900,
-                          color: lightColorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 40.0),
-                      TextFormField(
-                        controller: phoneController,
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please Enter Phone Number';
-                          }
-                          return null;
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Phone Number',
-                          hintText: 'Enter Phone Number',
-                          hintStyle: const TextStyle(color: Colors.black26),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20, 8, 20, bottomInset + 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: MobadraAuthSheet(
+                  child: Form(
+                    key: _formSignInKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Welcome Back',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ).mobadraFadeSlide(),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Please enter your credentials to continue.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                            height: 1.35,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.black12),
-                            borderRadius: BorderRadius.circular(10),
+                        ).mobadraFadeSlide(delayMs: 40),
+                        const SizedBox(height: 28),
+                        authFieldLabel('Phone Number'),
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter phone number';
+                            }
+                            return null;
+                          },
+                          decoration: authFilledDecoration(
+                            hintText: '+971 -- --- ----',
+                            prefixIcon: const Icon(Icons.phone_outlined),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 25.0),
-                      TextFormField(
-                        controller: nationalIdController,
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please Enter National ID';
-                          }
-                          return null;
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'National ID',
-                          hintText: 'Enter National ID',
-                          hintStyle: const TextStyle(color: Colors.black26),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.black12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 25.0),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Checkbox(
-                            value: rememberPassword,
-                            onChanged: (value) {
-                              setState(() {
-                                rememberPassword = value!;
-                              });
-                            },
-                            activeColor: lightColorScheme.primary,
-                          ),
-                          const Text('Remember me', style: TextStyle(color: Colors.black45)),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Checkbox(
-                            value: isAdminSignIn,
-                            onChanged: (value) {
-                              setState(() {
-                                isAdminSignIn = value!;
-                              });
-                            },
-                            activeColor: Colors.red,
-                          ),
-                          const Text('Sign in as admin', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                      const SizedBox(height: 25.0),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => _signIn(context),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 15.0),
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                        ).mobadraFadeSlide(delayMs: 60),
+                        const SizedBox(height: 18),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              'Password',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.grey.shade800,
+                              ),
                             ),
-                            side: BorderSide(color: lightColorScheme.primary),
+                            const Spacer(),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute<void>(builder: (_) => const ForgetPassword()),
+                                );
+                              },
+                              child: const Text(
+                                'Forgot Password?',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter password';
+                            }
+                            return null;
+                          },
+                          decoration: authFilledDecoration(
+                            hintText: '••••••••••••',
+                            prefixIcon: const Icon(Icons.lock_outline_rounded),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                color: Colors.grey.shade600,
+                              ),
+                              onPressed: () {
+                                setState(() => _obscurePassword = !_obscurePassword);
+                              },
+                            ),
                           ),
-                          child: const Text(
-                            'Sign in',
-                            style: TextStyle(color: Color(0xFF00c896)),
+                        ).mobadraFadeSlide(delayMs: 80),
+                        const SizedBox(height: 28),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _buttonBlue.withValues(alpha: 0.42),
+                                blurRadius: 18,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _buttonBlue,
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: _buttonBlue.withValues(alpha: 0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                elevation: 0,
+                              ),
+                              onPressed: _loading ? null : () => _signIn(),
+                              child: _loading
+                                  ? const SizedBox(
+                                      height: 22,
+                                      width: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Sign In',
+                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                                    ),
+                            ),
+                          ),
+                        ).mobadraFadeSlide(delayMs: 100),
+                        const SizedBox(height: 22),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'New to Mobadra?',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute<void>(builder: (_) => const SignupScreen()),
+                            );
+                          },
+                          child: Text(
+                            'Create Account',
+                            style: TextStyle(
+                              color: AppColors.tertiary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 25.0),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

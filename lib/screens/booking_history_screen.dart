@@ -1,327 +1,205 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cms/services/api_service.dart';
+import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/ui/mobadra_ui.dart';
 
 class BookingHistoryScreen extends StatefulWidget {
-  const BookingHistoryScreen({Key? key}) : super(key: key);
+  const BookingHistoryScreen({super.key});
 
   @override
   State<BookingHistoryScreen> createState() => _BookingHistoryScreenState();
 }
 
-class _BookingHistoryScreenState extends State<BookingHistoryScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   String _searchQuery = '';
-  String? _selectedService;
+  bool _loading = true;
+  List<Map<String, dynamic>> _appointments = [];
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _loadAppointments();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  Future<void> _loadAppointments() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final res = await ApiService.instance.getJson('/mobile/appointments/my-appointments');
+      final data = res['data'];
+      final list = data != null && data['appointments'] != null
+          ? List<Map<String, dynamic>>.from(
+              (data['appointments'] as List).map((e) => Map<String, dynamic>.from(e as Map)))
+          : <Map<String, dynamic>>[];
+      if (mounted) {
+        setState(() {
+          _appointments = list;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _appointments = [];
+          _error = e.toString();
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    if (_searchQuery.isEmpty) return _appointments;
+    final q = _searchQuery.toLowerCase();
+    return _appointments.where((a) {
+      final hospital = (a['hospital'] is Map ? (a['hospital'] as Map)['name'] : null)?.toString() ?? '';
+      final speciality = a['speciality']?.toString() ?? '';
+      return hospital.toLowerCase().contains(q) || speciality.toLowerCase().contains(q);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: MobadraAppBar(
         title: const Text('Booking History'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [Tab(text: 'My Bookings'), Tab(text: 'Family Bookings')],
-          indicatorColor: Color(0xFF00C896),
-          labelColor: Color(0xFF00C896),
-          unselectedLabelColor: Colors.black54,
-        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _loading ? null : _loadAppointments,
+          ),
+        ],
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search by patient name',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value.trim().toLowerCase();
-                      });
-                    },
-                  ),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search by hospital or speciality',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 8),
-                DropdownButton<String>(
-                  value: _selectedService,
-                  hint: const Text('Service'),
-                  items:
-                  ['Doctor Booking', 'Medical Transport']
-                      .map(
-                        (service) => DropdownMenuItem(
-                      value: service,
-                      child: Text(service),
-                    ),
-                  )
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedService = value;
-                    });
-                  },
-                  underline: Container(),
-                ),
-                if (_selectedService != null)
-                  IconButton(
-                    icon: Icon(Icons.clear),
-                    onPressed: () {
-                      setState(() {
-                        _selectedService = null;
-                      });
-                    },
-                  ),
-              ],
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value.trim().toLowerCase()),
             ),
           ),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _BookingsList(
-                  isFamily: false,
-                  searchQuery: _searchQuery,
-                  selectedService: _selectedService,
-                ),
-                _BookingsList(
-                  isFamily: true,
-                  searchQuery: _searchQuery,
-                  selectedService: _selectedService,
-                ),
-              ],
-            ),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Error: $_error', textAlign: TextAlign.center),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _loadAppointments,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : _filtered.isEmpty
+                        ? const Center(child: Text('No appointments found'))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            itemCount: _filtered.length,
+                            itemBuilder: (context, index) {
+                              final a = _filtered[index];
+                              final scheduledDate = a['scheduledDate'] != null
+                                  ? DateTime.tryParse(a['scheduledDate'].toString())
+                                  : null;
+                              final hospital = a['hospital'] is Map
+                                  ? (a['hospital'] as Map)['name']?.toString() ?? '—'
+                                  : '—';
+                              final status = a['status']?.toString() ?? '—';
+                              final speciality = a['speciality']?.toString() ?? '—';
+                              final isMobile = a['isMobileBooking'] == true;
+                              return Card(
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                color: AppColors.primaryContainer.withValues(alpha: 0.9),
+                                child: ListTile(
+                                  title: Text(
+                                    hospital,
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (scheduledDate != null)
+                                        Text(
+                                          'Date: ${scheduledDate.toIso8601String().split('T')[0]}',
+                                        ),
+                                      Text('Speciality: $speciality'),
+                                      Text('Status: $status'),
+                                      if (isMobile)
+                                        const Text(
+                                          'Booked via app',
+                                          style: TextStyle(
+                                            color: AppColors.primary,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  onTap: () => _showDetails(context, a),
+                                ),
+                              );
+                            },
+                          ),
           ),
         ],
       ),
     );
   }
-}
 
-class _BookingsList extends StatelessWidget {
-  final bool isFamily;
-  final String searchQuery;
-  final String? selectedService;
-
-  const _BookingsList({
-    required this.isFamily,
-    required this.searchQuery,
-    required this.selectedService,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return Center(child: Text('Not signed in'));
-    }
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _fetchBookings(user.uid),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No bookings found'));
-        }
-        // Filter by search and service
-        final filtered =
-        snapshot.data!.where((booking) {
-          final patientName =
-          (booking['fullName'] != null &&
-              booking['fullName'].toString().trim().isNotEmpty)
-              ? booking['fullName']
-              : ((booking['firstName'] ?? '') +
-              ' ' +
-              (booking['lastName'] ?? ''))
-              .trim();
-          final name = patientName.toLowerCase();
-          final matchesName =
-              searchQuery.isEmpty || name.contains(searchQuery);
-          final matchesService =
-              selectedService == null ||
-                  (booking['services'] != null &&
-                      (booking['services'] as List).contains(selectedService));
-          final status = (booking['status'] ?? '').toString().toLowerCase();
-          final matchesStatus =
-              status == 'pending' || status == 'confirmed';
-          return matchesName && matchesService && matchesStatus;
-        }).toList();
-        filtered.sort((a, b) {
-          final aDate =
-          a['serviceDates']?['Doctor Booking'] != null
-              ? DateTime.tryParse(a['serviceDates']['Doctor Booking'])
-              : null;
-          final bDate =
-          b['serviceDates']?['Doctor Booking'] != null
-              ? DateTime.tryParse(b['serviceDates']['Doctor Booking'])
-              : null;
-          if (aDate == null && bDate == null) return 0;
-          if (aDate == null) return 1;
-          if (bDate == null) return -1;
-          return bDate.compareTo(aDate);
-        });
-        return ListView.builder(
-          itemCount: filtered.length,
-          itemBuilder: (context, index) {
-            final booking = filtered[index];
-            final patientName =
-            (booking['fullName'] != null &&
-                booking['fullName'].toString().trim().isNotEmpty)
-                ? booking['fullName']
-                : ((booking['firstName'] ?? '') +
-                ' ' +
-                (booking['lastName'] ?? ''))
-                .trim();
-            final displayName =
-            patientName.isNotEmpty ? patientName : 'Unknown';
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              color: const Color(0xFFE6F3EF).withOpacity(0.9),
-              child: ListTile(
-                title: Text(displayName),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (booking['serviceDates']?['Doctor Booking'] != null)
-                      Text(
-                        'Date: ${booking['serviceDates']['Doctor Booking'].toString().split("T")[0]}',
-                      ),
-                    if (booking['services'] != null &&
-                        (booking['services'] as List).isNotEmpty)
-                      Text(
-                        'Service: ${(booking['services'] as List).join(", ")}',
-                      ),
-                    if (booking['speciality'] != null)
-                      Text('Speciality: ${booking['speciality']}'),
-                    if (booking['phone'] != null)
-                      Text('Phone: ${booking['phone']}'),
-                    if (booking['notes'] != null &&
-                        booking['notes'].toString().trim().isNotEmpty)
-                      Text('Notes: ${booking['notes']}'),
-                    if (booking['status'] != null)
-                      Text('Status: ${booking['status']}'),
-                  ],
-                ),
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      final patientName =
-                      (booking['fullName'] != null &&
-                          booking['fullName']
-                              .toString()
-                              .trim()
-                              .isNotEmpty)
-                          ? booking['fullName']
-                          : ((booking['firstName'] ?? '') +
-                          ' ' +
-                          (booking['lastName'] ?? ''))
-                          .trim();
-                      final displayName =
-                      patientName.isNotEmpty ? patientName : 'Unknown';
-                      return AlertDialog(
-                        title: Text('Booking Details'),
-                        content: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Patient: $displayName'),
-                              if (booking['serviceDates']?['Doctor Booking'] !=
-                                  null)
-                                Text(
-                                  'Date: ${booking['serviceDates']['Doctor Booking']}',
-                                ),
-                              if (booking['services'] != null &&
-                                  (booking['services'] as List).isNotEmpty)
-                                Text(
-                                  'Service: ${(booking['services'] as List).join(", ")}',
-                                ),
-                              if (booking['speciality'] != null)
-                                Text('Speciality: ${booking['speciality']}'),
-                              if (booking['phone'] != null)
-                                Text('Phone: ${booking['phone']}'),
-                              if (booking['notes'] != null &&
-                                  booking['notes'].toString().trim().isNotEmpty)
-                                Text('Notes: ${booking['notes']}'),
-                              if (booking['status'] != null)
-                                Text('Status: ${booking['status']}'),
-                            ],
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-            );
-          },
-        );
-      },
+  void _showDetails(BuildContext context, Map<String, dynamic> a) {
+    final scheduledDate = a['scheduledDate'] != null
+        ? DateTime.tryParse(a['scheduledDate'].toString())
+        : null;
+    final hospital = a['hospital'] is Map
+        ? (a['hospital'] as Map)['name']?.toString() ?? '—'
+        : '—';
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Appointment Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Hospital: $hospital'),
+              if (scheduledDate != null)
+                Text('Date: ${scheduledDate.toIso8601String().split('T')[0]}'),
+              Text('Speciality: ${a['speciality'] ?? '—'}'),
+              Text('Status: ${a['status'] ?? '—'}'),
+              if (a['notes'] != null && a['notes'].toString().trim().isNotEmpty)
+                Text('Notes: ${a['notes']}'),
+              if (a['isMobileBooking'] == true)
+                const Text('Booked via mobile app', style: TextStyle(color: AppColors.primary)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchBookings(String uid) async {
-    final firestore = FirebaseFirestore.instance;
-    if (!isFamily) {
-      // My Bookings
-      final snap =
-      await firestore
-          .collection('users')
-          .doc(uid)
-          .collection('bookings')
-          .get();
-      return snap.docs.map((doc) => doc.data()).toList();
-    } else {
-      // Family Bookings
-      final familySnap =
-      await firestore
-          .collection('users')
-          .doc(uid)
-          .collection('family')
-          .get();
-      List<Map<String, dynamic>> allBookings = [];
-      for (final famDoc in familySnap.docs) {
-        final bookingsSnap =
-        await firestore
-            .collection('users')
-            .doc(uid)
-            .collection('family')
-            .doc(famDoc.id)
-            .collection('bookings')
-            .get();
-        allBookings.addAll(bookingsSnap.docs.map((doc) => doc.data()));
-      }
-      return allBookings;
-    }
   }
 }

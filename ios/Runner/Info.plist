@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Cms</string>
+	<string>$(APP_DISPLAY_NAME)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,6 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is used to scan QR codes and capture required images.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is used to select images to upload.</string>
 	<!-- ADD THIS ENTIRE BLOCK -->
         <key>LSApplicationQueriesSchemes</key>
         <array>

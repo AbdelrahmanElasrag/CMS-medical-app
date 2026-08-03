@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'welcome_screen.dart';
+import 'package:cms/services/auth_service.dart';
+import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/ui/mobadra_ui.dart';
 
-
-// --- IMPORTANT: You must import your welcome/login screen here ---
-// For example, if your login screen is signin_screen.dart:
-import 'signin_screen.dart';
-
-const String _supportEmail = 'support@example.com';
+const String _supportEmail = 'info@creativemultisolutions.com';
+const String _privacyPolicyUrl = String.fromEnvironment(
+  'PRIVACY_POLICY_URL',
+  defaultValue: 'https://www.creativemultisolutions.com/privacy',
+);
+const String _termsUrl = String.fromEnvironment(
+  'TERMS_OF_SERVICE_URL',
+  defaultValue: 'https://www.creativemultisolutions.com/terms',
+);
+const String _dataNoticeUrl = String.fromEnvironment(
+  'DATA_COLLECTION_URL',
+  defaultValue: 'https://www.creativemultisolutions.com/data-collection',
+);
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -24,66 +31,22 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDeleting = false;
 
-  // --- FIX: The navigation logic is updated here ---
   Future<void> _deleteAccount() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
     setState(() => _isDeleting = true);
-
     try {
-      final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
-      await userDoc.delete();
-      await user.delete();
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-
+      // Backend does not expose account deletion from app; direct user to support
       if (mounted) {
-        // This is the key change: it destroys the old UI and builds the new one
-        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => const WelcomeScreen(), // Navigate to your sign-in screen
-          ),
-              (route) => false,
-        );
+        mobadraToast(context, 'To delete your account, please contact support.');
       }
-    } on FirebaseAuthException catch (e) {
-      setState(() => _isDeleting = false);
-      String message = 'Failed to delete account.';
-      // This handles cases where the user needs to re-authenticate for security
-      if (e.code == 'requires-recent-login') {
-        message = 'This is a sensitive operation. Please log out and log back in before deleting your account.';
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
-        );
-      }
-    } catch (e) {
-      setState(() => _isDeleting = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred: ${e.toString()}'), backgroundColor: Colors.red),
-        );
-      }
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
     }
   }
 
-  // --- FIX: The navigation logic is also updated here for consistency ---
   void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-
+    await Provider.of<AuthService>(context, listen: false).logout();
     if (mounted) {
-      // Use the same robust navigation method here
-      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => const WelcomeScreen(), // Navigate to your sign-in screen
-        ),
-            (route) => false,
-      );
+      Navigator.of(context).pop();
     }
   }
 
@@ -99,13 +62,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _openLegalUrl(String rawUrl) async {
+    final uri = Uri.parse(rawUrl);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      mobadraToast(context, 'Could not open link right now', error: true);
+    }
+  }
+
   void _showCopyEmailDialog() {
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => ShadDialog(
         title: const Text('Contact Support'),
-        content: Column(
+        actions: [
+          ShadButton(
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: _supportEmail));
+              Navigator.pop(context);
+              mobadraToast(context, 'Email address copied to clipboard!');
+            },
+            child: const Text('Copy email'),
+          ),
+          ShadButton.outline(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+        ],
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -114,17 +96,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text(_supportEmail, style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(const ClipboardData(text: _supportEmail));
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email address copied to clipboard!')));
-            },
-            child: const Text('COPY EMAIL'),
-          ),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CLOSE')),
-        ],
       ),
     );
   }
@@ -136,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _aboutApp() {
     showAboutDialog(
       context: context,
-      applicationName: 'CMS Medical Services',
+      applicationName: 'Creative Mobadra',
       applicationVersion: '1.0.0',
       applicationLegalese: 'Developed by MA Devs',
     );
@@ -145,20 +116,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showDeleteDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => ShadDialog.alert(
         title: const Text('Delete Account'),
-        content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
+        description: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: _isDeleting ? null : () async {
-              Navigator.pop(context);
-              await _deleteAccount();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          ShadButton.outline(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ShadButton.destructive(
+            onPressed: _isDeleting
+                ? null
+                : () async {
+                    Navigator.pop(context);
+                    await _deleteAccount();
+                  },
             child: _isDeleting
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Delete', style: TextStyle(color: Colors.white)),
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Delete'),
           ),
         ],
       ),
@@ -167,20 +139,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: const MobadraAppBar(title: Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ListTile(leading: const Icon(Icons.share, color: Color(0xFF00C896)), title: const Text('Share App'), onTap: _shareApp),
+          ListTile(leading: const Icon(Icons.share, color: AppColors.primary), title: const Text('Share App'), onTap: _shareApp),
           const Divider(),
-          ListTile(leading: const Icon(Icons.support_agent, color: Color(0xFF00C896)), title: const Text('Contact Support'), onTap: _contactSupport),
+          ListTile(leading: const Icon(Icons.support_agent, color: AppColors.primary), title: const Text('Contact Support'), onTap: _contactSupport),
           const Divider(),
-          ListTile(leading: const Icon(Icons.info_outline, color: Color(0xFF00C896)), title: const Text('About App'), onTap: _aboutApp),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
+            title: const Text('Privacy Policy'),
+            onTap: () => _openLegalUrl(_privacyPolicyUrl),
+          ),
           const Divider(),
-          ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: const Text('Delete Account'), onTap: _showDeleteDialog),
+          ListTile(
+            leading: const Icon(Icons.gavel_outlined, color: AppColors.primary),
+            title: const Text('Terms of Service'),
+            onTap: () => _openLegalUrl(_termsUrl),
+          ),
           const Divider(),
-          ListTile(leading: const Icon(Icons.logout, color: Colors.red), title: const Text('Log Out'), onTap: _logout),
+          ListTile(
+            leading: const Icon(Icons.shield_outlined, color: AppColors.primary),
+            title: const Text('Data Collection Notice'),
+            onTap: () => _openLegalUrl(_dataNoticeUrl),
+          ),
+          const Divider(),
+          ListTile(leading: const Icon(Icons.info_outline, color: AppColors.primary), title: const Text('About App'), onTap: _aboutApp),
+          if (auth.isLoggedIn) ...[
+            const Divider(),
+            ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: const Text('Delete Account'), onTap: _showDeleteDialog),
+            const Divider(),
+            ListTile(leading: const Icon(Icons.logout, color: Colors.red), title: const Text('Log Out'), onTap: _logout),
+          ],
           const SizedBox(height: 32),
           Center(child: Text('app version 1.0.0', style: TextStyle(color: Colors.grey[500], fontSize: 14))),
         ],

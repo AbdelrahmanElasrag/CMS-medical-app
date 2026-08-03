@@ -1,0 +1,362 @@
+{
+  "version": 4,
+  "startId": "n_welcome",
+  "nodes": {
+    "n_welcome": {
+      "assistantText": "مرحبًا — سأطرح عليك بعض الأسئلة القصيرة لاقتراح مستوى الرعاية المناسب. لست طبيبك، وهذا ليس تشخيصًا.\n\nاضغط «متابعة» عندما تكون جاهزًا.",
+      "typingMs": 400,
+      "options": [
+        {"id": "w_cont", "label": "متابعة", "nextId": "n_gate"}
+      ]
+    },
+    "n_gate": {
+      "assistantText": "أولًا، هل يحدث أي مما يلي الآن؟\n\nاختر إجابة واحدة أدناه. إذا انطبق أكثر من واحد، اختر ما يقلقك أكثر.",
+      "typingMs": 350,
+      "options": [
+        {"id": "g_neuro", "label": "ارتباك، صعوبة شديدة في الإيقاظ، نوبة صرع، أو إصابة رأسية خطيرة مع ارتباك", "nextId": "t_em_global_neuro", "tagsAdd": ["gate_acute_neuro"], "forceEmergency": true},
+        {"id": "g_bleed", "label": "نزيف شديد، تقيؤ متكرر للدم، سعال دم كثير، أو براز أسود قطراني", "nextId": "t_em_global_bleed", "tagsAdd": ["gate_bleed"], "forceEmergency": true},
+        {"id": "g_air", "label": "ضيق تنفس شديد، شعور بالاختناق، أو شفاه/أطراف زرقاء/رمادية", "nextId": "t_emergency_breath", "tagsAdd": ["gate_air"], "forceEmergency": true},
+        {"id": "g_ok", "label": "لا شيء من ذلك — متابعة", "nextId": "n_age"}
+      ]
+    },
+    "n_age": {
+      "assistantText": "ما الفئة العمرية التي تنتمي إليها؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "age_young", "label": "18–39", "nextId": "n_sex", "tagsAdd": ["age_band_young"]},
+        {"id": "age_mid", "label": "40–64", "nextId": "n_sex", "tagsAdd": ["age_band_mid"]},
+        {"id": "age_senior", "label": "65 فأكثر", "nextId": "n_sex", "tagsAdd": ["age_band_senior"]}
+      ]
+    },
+    "n_sex": {
+      "assistantText": "كيف تصف جنسك؟ (نستخدم ذلك فقط لضبط بعض الأسئلة.)",
+      "typingMs": 300,
+      "options": [
+        {"id": "sex_m", "label": "ذكر", "nextId": "n_onset", "tagsAdd": ["sex_male"]},
+        {"id": "sex_f", "label": "أنثى", "nextId": "n_onset", "tagsAdd": ["sex_female"]},
+        {"id": "sex_x", "label": "أفضل عدم الإفصاح", "nextId": "n_onset", "tagsAdd": ["sex_unknown"]}
+      ]
+    },
+    "n_onset": {
+      "assistantText": "منذ متى بدأت أعراضك الرئيسية؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "on_s", "label": "أقل من 24 ساعة", "nextId": "n_chief", "tagsAdd": ["onset_short"]},
+        {"id": "on_m", "label": "1 إلى 7 أيام", "nextId": "n_chief", "tagsAdd": ["onset_mid"]},
+        {"id": "on_l", "label": "أكثر من أسبوع", "nextId": "n_chief", "tagsAdd": ["onset_long"]}
+      ]
+    },
+    "n_chief": {
+      "assistantText": "ما الذي يزعجك أكثر اليوم؟",
+      "typingMs": 350,
+      "options": [
+        {"id": "ch_cold", "label": "زكام، سعال، التهاب حلق، أو أعراض شبيهة بالإنفلونزا", "nextId": "n_cold_fev", "tagsAdd": ["chief_cold"]},
+        {"id": "ch_fever", "label": "حمى، قشعريرة، أو شعور شديد بالحرارة دون أعراض برد رئيسية", "nextId": "n_fever_temp", "tagsAdd": ["chief_fever"]},
+        {"id": "ch_chest", "label": "ألم أو ضغط أو ضيق في الصدر", "nextId": "n_chest_sob", "tagsAdd": ["chief_chest"]},
+        {"id": "ch_breath", "label": "مشكلة تنفس / صفير", "nextId": "n_breath_severe", "tagsAdd": ["chief_resp"]},
+        {"id": "ch_neuro", "label": "ضعف، خدر، صعوبة في الكلام، أو ميل في الوجه", "nextId": "n_neuro_face", "tagsAdd": ["chief_neuro"]},
+        {"id": "ch_gi", "label": "قيء، إسهال، أو ألم في البطن", "nextId": "n_gi_blood", "tagsAdd": ["chief_gi"]},
+        {"id": "ch_uri", "label": "حرقة بول، ألم في الخاصرة، أو اشتباه التهاب مسالك بولية", "nextId": "n_uri_fever", "tagsAdd": ["chief_uri"]},
+        {"id": "ch_skin", "label": "طفح، شرى، أو اشتباه عدوى جلدية", "nextId": "n_skin_gate", "tagsAdd": ["chief_skin"]},
+        {"id": "ch_inj", "label": "إصابة، سقوط، أو ألم شديد جديد بعد صدمة", "nextId": "n_inj_severe", "tagsAdd": ["chief_injury"]},
+        {"id": "ch_head", "label": "صداع شديد أو غير معتاد", "nextId": "n_head_thunder", "tagsAdd": ["chief_headache"]},
+        {"id": "ch_mh", "label": "قلق، ذعر، مزاج منخفض، أو أفكار مخيفة", "nextId": "n_mh_harm", "tagsAdd": ["chief_mh"]},
+        {"id": "ch_other", "label": "شيء آخر / لست متأكدًا", "nextId": "n_smoking", "tagsAdd": ["chief_other"]}
+      ]
+    },
+    "n_cold_fev": {
+      "assistantText": "هل لديك حمى حقيقية، قشعريرة شديدة، أو آلام في الجسم تُفقِدك الطاقة بشكل واضح؟",
+      "typingMs": 300,
+      "options": [
+        {"id": "cf_y", "label": "نعم", "nextId": "n_cold_breath", "tagsAdd": ["cold_systemic_yes"]},
+        {"id": "cf_n", "label": "لا / خفيف", "nextId": "n_cold_coughblood", "tagsAdd": ["cold_systemic_no"]}
+      ]
+    },
+    "n_cold_breath": {
+      "assistantText": "هل تشعر بضيق تنفس أثناء الراحة، أو ضيق في الصدر مع كل نفس؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "cb_y", "label": "نعم", "nextId": "t_emergency_breath", "tagsAdd": ["cold_sob_yes"], "forceEmergency": true},
+        {"id": "cb_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["cold_sob_no"]}
+      ]
+    },
+    "n_cold_coughblood": {
+      "assistantText": "هل تسعل دمًا أكثر من خط رفيع؟",
+      "typingMs": 300,
+      "options": [
+        {"id": "ccb_y", "label": "نعم", "nextId": "t_em_global_bleed", "tagsAdd": ["cough_blood_yes"], "forceEmergency": true},
+        {"id": "ccb_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["cough_blood_no"]}
+      ]
+    },
+    "n_skin_gate": {
+      "assistantText": "هل ينتشر الطفح بسرعة، أو لديك حمى مع تصلب رقبة أو ارتباب مع الطفح؟",
+      "typingMs": 340,
+      "options": [
+        {"id": "sk_b", "label": "نعم", "nextId": "t_emergency_skin", "tagsAdd": ["skin_bad_yes"], "forceEmergency": true},
+        {"id": "sk_g", "label": "لا", "nextId": "n_skin_face", "tagsAdd": ["skin_bad_no"]}
+      ]
+    },
+    "n_skin_face": {
+      "assistantText": "هل الطفح قرب العين، أو بثور مؤلمة على شكل شريط في جانب واحد من الوجه أو الجسم؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "sf_y", "label": "نعم / لست متأكدًا", "nextId": "n_smoking", "tagsAdd": ["skin_face_yes"]},
+        {"id": "sf_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["skin_face_no"]}
+      ]
+    },
+    "n_mh_harm": {
+      "assistantText": "أحتاج أن أسأل بوضوح: هل تفكّر بإيذاء نفسك أو شخص آخر؟",
+      "typingMs": 380,
+      "options": [
+        {"id": "mh_y", "label": "نعم", "nextId": "t_emergency_crisis", "tagsAdd": ["mh_harm_yes"], "forceEmergency": true},
+        {"id": "mh_n", "label": "لا", "nextId": "n_mh_panic", "tagsAdd": ["mh_harm_no"]}
+      ]
+    },
+    "n_mh_panic": {
+      "assistantText": "هل يأتي على شكل موجات — قلب يخفق، رجفة، خوف شديد أن يحدث شيء فظيع — ثم يهدأ بعد قليل؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "mp_y", "label": "نعم، ينطبق", "nextId": "n_smoking", "tagsAdd": ["mh_panic_yes"]},
+        {"id": "mp_n", "label": "لا / لست متأكدًا", "nextId": "n_smoking", "tagsAdd": ["mh_panic_no"]}
+      ]
+    },
+    "n_fever_temp": {
+      "assistantText": "هل تشعر بحريق شديد أو قشعريرة شديدة — أو حرارة نحو 39°م / 102°ف أو أعلى إن قست؟",
+      "typingMs": 300,
+      "options": [
+        {"id": "fe_high_y", "label": "نعم", "nextId": "n_fever_days", "tagsAdd": ["feb_high_yes"]},
+        {"id": "fe_high_n", "label": "لا / لست متأكدًا", "nextId": "n_fever_days", "tagsAdd": ["feb_high_no"]}
+      ]
+    },
+    "n_fever_days": {
+      "assistantText": "منذ متى تشعر هكذا؟",
+      "typingMs": 280,
+      "options": [
+        {"id": "fe_d1", "label": "أقل من 24 ساعة", "nextId": "n_smoking", "tagsAdd": ["feb_dur_short"]},
+        {"id": "fe_d2", "label": "1–3 أيام", "nextId": "n_smoking", "tagsAdd": ["feb_dur_mid"]},
+        {"id": "fe_d3", "label": "أكثر من 3 أيام", "nextId": "n_smoking", "tagsAdd": ["feb_dur_long"]}
+      ]
+    },
+    "n_chest_sob": {
+      "assistantText": "حتى أثناء الراحة، هل تشعر بضيق تنفس، أو لا تستطيع إكمال جملة قصيرة؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "cx_sob_y", "label": "نعم", "nextId": "t_emergency_chest", "tagsAdd": ["cx_sob_yes"], "forceEmergency": true},
+        {"id": "cx_sob_n", "label": "لا", "nextId": "n_chest_radiate", "tagsAdd": ["cx_sob_no"]}
+      ]
+    },
+    "n_chest_radiate": {
+      "assistantText": "هل ينتشر الألم إلى الذراع أو الفك أو الرقبة أو الظهر — خاصة مع تعرق أو اضطراب معدة؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "cx_rad_y", "label": "نعم", "nextId": "t_emergency_chest", "tagsAdd": ["cx_rad_yes"], "forceEmergency": true},
+        {"id": "cx_rad_n", "label": "لا", "nextId": "n_chest_exert", "tagsAdd": ["cx_rad_no"]}
+      ]
+    },
+    "n_chest_exert": {
+      "assistantText": "هل يثيره المشي السريع أو صعود الدرج أو التوتر، أو يشبه ضغطًا ثقيلًا عبر الصدر؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "cx_ex_y", "label": "نعم / لست متأكدًا", "nextId": "n_smoking", "tagsAdd": ["cx_exert_yes"]},
+        {"id": "cx_ex_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["cx_exert_no"]}
+      ]
+    },
+    "n_breath_severe": {
+      "assistantText": "الآن، هل التنفس صعب جدًا — مثلًا شفاه أو أصابع زرقاء، أو جهد شديد لسحب الهواء، أو لا تستطيع المشي بضع خطوات؟",
+      "typingMs": 340,
+      "options": [
+        {"id": "br_sy", "label": "نعم", "nextId": "t_emergency_breath", "tagsAdd": ["br_severe_yes"], "forceEmergency": true},
+        {"id": "br_sn", "label": "لا", "nextId": "n_breath_duration", "tagsAdd": ["br_severe_no"]}
+      ]
+    },
+    "n_breath_duration": {
+      "assistantText": "منذ متى استمرت أعراض التنفس؟",
+      "typingMs": 280,
+      "options": [
+        {"id": "br_d1", "label": "أقل من 48 ساعة", "nextId": "n_smoking", "tagsAdd": ["br_dur_short"]},
+        {"id": "br_d2", "label": "2–7 أيام", "nextId": "n_smoking", "tagsAdd": ["br_dur_mid"]},
+        {"id": "br_d3", "label": "أكثر من أسبوع", "nextId": "n_smoking", "tagsAdd": ["br_dur_long"]}
+      ]
+    },
+    "n_neuro_face": {
+      "assistantText": "هل جانب من وجهك مُسقِط، أو ابتسامتك غير متساوية؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "nf_y", "label": "نعم", "nextId": "t_emergency_stroke", "tagsAdd": ["st_face_yes"], "forceEmergency": true},
+        {"id": "nf_n", "label": "لا", "nextId": "n_neuro_arm", "tagsAdd": ["st_face_no"]}
+      ]
+    },
+    "n_neuro_arm": {
+      "assistantText": "هل بدأ الخدر أو الضعف أو صعوبة الكلام فجأة في جانب واحد؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "na_y", "label": "نعم", "nextId": "t_emergency_stroke", "tagsAdd": ["st_arm_yes"], "forceEmergency": true},
+        {"id": "na_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["st_arm_no"]}
+      ]
+    },
+    "n_gi_blood": {
+      "assistantText": "هل لديك براز أسود قارئ، أو تقيؤ دم، أو نزيف كثير من المستقيم؟",
+      "typingMs": 300,
+      "options": [
+        {"id": "gb_y", "label": "نعم", "nextId": "t_emergency_gi", "tagsAdd": ["gi_blood_yes"], "forceEmergency": true},
+        {"id": "gb_n", "label": "لا", "nextId": "n_gi_pain", "tagsAdd": ["gi_blood_no"]}
+      ]
+    },
+    "n_gi_pain": {
+      "assistantText": "هل ألم البطن الأشد على الإطلاق، أو منتشر مع بطن صلب كاللوح؟",
+      "typingMs": 300,
+      "options": [
+        {"id": "gp_y", "label": "نعم", "nextId": "t_emergency_gi", "tagsAdd": ["gi_severe_yes"], "forceEmergency": true},
+        {"id": "gp_n", "label": "لا", "nextId": "n_gi_fluids", "tagsAdd": ["gi_severe_no"]}
+      ]
+    },
+    "n_gi_fluids": {
+      "assistantText": "هل لم تحتفظ تقريبًا بأي سوائل لأكثر من نحو 8 ساعات، أو بال بول قليل جدًا؟",
+      "typingMs": 300,
+      "options": [
+        {"id": "gd_y", "label": "نعم", "nextId": "n_smoking", "tagsAdd": ["gi_dehydr_yes"]},
+        {"id": "gd_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["gi_dehydr_no"]}
+      ]
+    },
+    "n_uri_fever": {
+      "assistantText": "مع حرقة أو كثرة التبول — هل لديك حمى، ألم جانبي، غثيان، أو قيء؟",
+      "typingMs": 280,
+      "options": [
+        {"id": "uf_y", "label": "نعم", "nextId": "n_smoking", "tagsAdd": ["uri_complex_yes"]},
+        {"id": "uf_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["uri_complex_no"]}
+      ]
+    },
+    "n_inj_severe": {
+      "assistantText": "بعد الإصابة: ارتباك شديد، تقيؤ متكرر، أو لا تستطيع استخدام طرف؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "ij_y", "label": "نعم", "nextId": "t_emergency_injury", "tagsAdd": ["inj_major_yes"], "forceEmergency": true},
+        {"id": "ij_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["inj_major_no"]}
+      ]
+    },
+    "n_head_thunder": {
+      "assistantText": "هل ضرب الصداع كالرعد — الأسوأ على الإطلاق — أو مع تغيّر رؤية أو ضعف؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "ht_y", "label": "نعم", "nextId": "t_emergency_head", "tagsAdd": ["head_red_yes"], "forceEmergency": true},
+        {"id": "ht_n", "label": "لا", "nextId": "n_smoking", "tagsAdd": ["head_red_no"]}
+      ]
+    },
+    "n_smoking": {
+      "assistantText": "هل تدخن سجائر أو تستخدم vaping بالنيكوتين معظم الأيام؟",
+      "typingMs": 300,
+      "options": [
+        {"id": "sm_y", "label": "نعم", "nextId": "n_alcohol", "tagsAdd": ["smoker_yes"]},
+        {"id": "sm_n", "label": "لا", "nextId": "n_alcohol", "tagsAdd": ["smoker_no"]},
+        {"id": "sm_x", "label": "أفضل عدم الإفصاح", "nextId": "n_alcohol", "tagsAdd": ["smoker_decline"]}
+      ]
+    },
+    "n_alcohol": {
+      "assistantText": "هل تشرب أكثر من نحو 8 مشروبات أسبوعيًا (نساء) أو 15 (رجال)، أو تفرط غالبًا؟",
+      "typingMs": 300,
+      "options": [
+        {"id": "al_y", "label": "نعم / لست متأكدًا", "nextId": "n_immuno", "tagsAdd": ["alcohol_high"]},
+        {"id": "al_n", "label": "لا", "nextId": "n_immuno", "tagsAdd": ["alcohol_low"]}
+      ]
+    },
+    "n_immuno": {
+      "assistantText": "هل تتلقى علاجًا كيميائيًا، أو حبوب ستيرويد يومية (مثل بريدنيزون)، أو أدوية أخرى تُضعف المناعة بشدة (حسب وصفة أخصائي)؟",
+      "typingMs": 340,
+      "options": [
+        {"id": "im_y", "label": "نعم / لست متأكدًا", "nextId": "n_preg", "tagsAdd": ["immunocomp_yes"]},
+        {"id": "im_n", "label": "لا", "nextId": "n_preg", "tagsAdd": ["immunocomp_no"]}
+      ]
+    },
+    "n_preg": {
+      "assistantText": "هل قد تكونين حاملاً، أو ربما حامل، أو خلال ستة أسابيع بعد الولادة؟",
+      "typingMs": 320,
+      "options": [
+        {"id": "pr_na", "label": "لا ينطبق", "nextId": "t_computed", "tagsAdd": ["preg_na"]},
+        {"id": "pr_n", "label": "لا", "nextId": "t_computed", "tagsAdd": ["preg_no"]},
+        {"id": "pr_y", "label": "نعم أو لست متأكدًا", "nextId": "t_computed", "tagsAdd": ["preg_yes"]}
+      ]
+    },
+    "t_em_global_neuro": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "تصف إجاباتك أعراضًا عصبية خطيرة محتملة أو إصابة رأسية مع ارتباب. اتصل برقم الطوارئ المحلي أو اذهب لأقرب قسم طوارئ الآن.",
+      "hintBullets": [
+        "لا تقود إذا كنت مرتبكًا أو نعسانًا.",
+        "إن كان معك شخص، اطلب منه البقاء قريبًا."
+      ]
+    },
+    "t_em_global_bleed": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "النزيف الشديد أو علامات نزيف داخلي كبير يحتاج رعاية عاجلة شخصيًا. اتصل بخدمات الطوارئ أو اذهب لقسم الطوارئ.",
+      "hintBullets": [
+        "استلقِ إذا شعرت بدوار؛ تجنب الكحول وأدوية تسييل الدم ما لم يخبرك طبيب بخلاف ذلك."
+      ]
+    },
+    "t_emergency_skin": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "طفح ينتشر بسرعة مع حمى أو تصلب رقبة أو ارتباب قد يكون خطيرًا. اطلب رعاية طوارئ الآن.",
+      "hintBullets": [
+        "لاحظ متى بدأ الطفح وأي أدوية جديدة — أحضر قائمة إن أمكن."
+      ]
+    },
+    "t_emergency_crisis": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "إن كنت قد تؤذي نفسك أو غيرك، اطلب مساعدة فورية. اتصل برقم الطوارئ المحلي؛ في الولايات المتحدة اتصل أو أرسل رسالة إلى 988 (خط الأزمات والانتحار). اذهب لأقرب طوارئ إن لم تستطع البقاء بأمان.",
+      "hintBullets": [
+        "لست وحدك — خطوط الأزمات تعمل على مدار الساعة.",
+        "أبعد أي وسيلة قد تؤذي بها نفسك إن أمكن بأمان."
+      ]
+    },
+    "t_emergency_chest": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "تشير إجاباتك إلى احتمال خطورة في القلب أو الرئة. إذا كانت الأعراض شديدة أو تتفاقم، اتصل برقم الطوارئ أو اذهب لأقرب طوارئ الآن.",
+      "hintBullets": [
+        "لا تقود إذا شعرت بإغماء أو تعرق أو ضيق تنفس.",
+        "امضغ أسبرين فقط إن نصحك طبيب سابقًا؛ وإلا فاطلب الرعاية أولًا."
+      ]
+    },
+    "t_emergency_breath": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "ضيق تنفس شديد يحتاج تقييمًا عاجلًا شخصيًا. اتصل بخدمات الطوارئ أو اذهب لقسم الطوارئ.",
+      "hintBullets": ["اجلس منتصبًا، أرخِ الملابس الضيقة، واستخدم بخاخ الإنقاذ الموصوف فقط حسب التوجيه."]
+    },
+    "t_emergency_stroke": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "أعراض سكتة دماغية محتملة حساسة للوقت. اتصل بخدمات الطوارئ فورًا — سجّل وقت بدء الأعراض.",
+      "hintBullets": ["لا تأكل أو تشرب حتى التقييم.", "اطلب من شخص البقاء معك إن أمكن."]
+    },
+    "t_emergency_gi": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "النزيف أو أعراض بطنية شديدة تحتاج تقييمًا طارئًا. اطلب رعاية الطوارئ.",
+      "hintBullets": ["تجنب مضادات الالتهاب غير الستيرويدية حتى التقييم إذا اشتبه في نزيف."]
+    },
+    "t_emergency_injury": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "إصابة كبيرة أو أعراض رأس بعد صدمة تحتاج تقييمًا عاجلًا. اذهب للطوارئ أو اتصل بخدمات الطوارئ.",
+      "hintBullets": ["ثبّت المنطقة المصابة؛ تجنب الحركة إذا ألم الرقبة بعد صدمة."]
+    },
+    "t_emergency_head": {
+      "terminal": true,
+      "triageBucket": "emergency",
+      "careSummary": "صداع شديد مفاجئ مع أعراض عصبية يحتاج تقييمًا طارئًا.",
+      "hintBullets": ["استرح في غرفة مظلمة هادئة أثناء انتظار المساعد إن نصحتك الجهة المختصة."]
+    },
+    "t_computed": {
+      "terminal": true,
+      "computeFromTags": true,
+      "careSummary": "بناءً على إجاباتك، اتبع الإرشاد أدناه. عند الشك، اطلب رعاية شخصية.",
+      "hintBullets": [
+        "هذه الأداة لا تشخص ولا تصف علاجًا.",
+        "يجب أن يراجع طبيب مرخّص الأعراض المستمرة أو المتفاقمة."
+      ]
+    }
+  }
+}

@@ -1,11 +1,11 @@
 {
-    "name": "cms",
-    "short_name": "cms",
+    "name": "Creative Mobadra",
+    "short_name": "Mobadra",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#005EB8",
+    "theme_color": "#005EB8",
+    "description": "Creative Mobadra member app — hospital partners, perks, and rewards.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

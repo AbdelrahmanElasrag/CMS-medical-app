@@ -1,59 +1,83 @@
-// lib/main.dart (The final, correct version)
+// lib/main.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
 
-// Import your new AuthGate
+import 'l10n/app_localizations.dart';
 import 'screens/services/auth_gate.dart';
-
-// Import your providers
 import 'screens/family_provider.dart';
-import 'screens/services/auth_services.dart';
+import 'services/auth_service.dart';
+import 'services/locale_controller.dart';
+import 'services/wellness_service.dart';
+import 'theme/app_theme.dart';
+import 'theme/shadcn_mobadra_theme.dart';
 import 'theme/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  if (!kIsWeb) {
+    tzdata.initializeTimeZones();
+    try {
+      tz.setLocalLocation(tz.getLocation('Asia/Dubai'));
+    } catch (_) {
+      tz.setLocalLocation(tz.UTC);
+    }
+    await WellnessService.instance.init();
+    await WellnessService.instance.rescheduleAllMeds();
+  }
+
+  final localeController = LocaleController();
+  await localeController.load();
 
   runApp(
     MultiProvider(
       providers: [
-        Provider<AuthService>(create: (_) => AuthService()),
+        ChangeNotifierProvider.value(value: AuthService.instance),
         ChangeNotifierProvider(create: (_) => FamilyProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: localeController),
       ],
       child: const MyApp(),
     ),
   );
 }
 
-// MyApp is now a simple, stateless widget with no logic
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Your theme setup is correct
-    const Color primaryColor = Color(0xFF00C896);
-    final ThemeData lightTheme = ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: primaryColor, brightness: Brightness.light),
-    );
-    final ThemeData darkTheme = ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: primaryColor, brightness: Brightness.dark),
-    );
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'CMS Medical Services',
-      theme: lightTheme,
-      darkTheme: darkTheme,
-
-      // The starting point of the app is ALWAYS the AuthGate.
-      // It will handle showing the correct screen (SignIn or Home).
-      home: const AuthGate(),
+    return Consumer2<ThemeProvider, LocaleController>(
+      builder: (context, themeProvider, localeController, _) {
+        return ShadApp.custom(
+          themeMode: themeProvider.mode,
+          theme: MobadraShadThemes.light(),
+          darkTheme: MobadraShadThemes.dark(),
+          appBuilder: (context) => MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Creative Mobadra',
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: themeProvider.mode,
+            locale: localeController.locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) =>
+                ShadAppBuilder(child: child ?? const SizedBox.shrink()),
+            home: const AuthGate(),
+          ),
+        );
+      },
     );
   }
 }

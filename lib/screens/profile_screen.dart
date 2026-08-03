@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'family_member.dart';
 import 'family_provider.dart';
-import '/screens/services/auth_services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '/screens/splash_screen.dart';
+import 'package:cms/services/auth_service.dart';
+import 'package:cms/services/api_service.dart';
+import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/ui/mobadra_ui.dart';
+import 'package:cms/ui/vip_membership_card.dart';
 import 'booking_history_screen.dart';
 import 'settings_screen.dart';
-import '../theme/theme_provider.dart';
+import 'wellness_screen.dart';
 import 'help_screen.dart';
+import 'signin_screen.dart';
+import 'signup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
   final int points;
 
-  const ProfileScreen({required this.username, required this.points, Key? key})
-      : super(key: key);
+  const ProfileScreen({
+    required this.username,
+    required this.points,
+    super.key,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -29,20 +31,42 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _loadingFamily = true;
-  bool _isUploading = false;
   bool _isLoadingImage = true;
   File? _profileImage;
   String? _profileImageUrl;
-  final ImagePicker _picker = ImagePicker();
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _loadingPatientQr = false;
+  String? _patientQrData;
+  String? _patientQrError;
 
   @override
   void initState() {
     super.initState();
-    _loadFamily();
-    _loadProfileImage();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final auth = Provider.of<AuthService>(context, listen: false);
+      if (!auth.isLoggedIn) {
+        setState(() {
+          _loadingFamily = false;
+          _isLoadingImage = false;
+        });
+        return;
+      }
+      _loadFamily();
+      _loadProfileImage();
+      _loadPatientQr();
+    });
+  }
+
+  @override
+  void didUpdateWidget(ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasGuest = oldWidget.username == 'Guest';
+    final isGuest = widget.username == 'Guest';
+    if (wasGuest && !isGuest) {
+      _loadFamily();
+      _loadProfileImage();
+      _loadPatientQr();
+    }
   }
 
   Future<void> _loadFamily() async {
@@ -56,205 +80,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfileImage() async {
     try {
-      setState(() {
-        _isLoadingImage = true;
-      });
-
-      final user = _auth.currentUser;
-      if (user == null) return;
-
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      if (userDoc.exists) {
-        final data = userDoc.data();
-        if (data != null && data['profileImageUrl'] != null) {
-          setState(() {
-            _profileImageUrl = data['profileImageUrl'];
-          });
-        }
+      setState(() => _isLoadingImage = true);
+      final res = await ApiService.instance.getJson('/mobile/patient/me');
+      final data = res['data'];
+      if (data != null && data['patient'] != null) {
+        final patient = data['patient'] as Map<String, dynamic>;
+        final url = patient['profileImageUrl'] as String?;
+        if (mounted) setState(() => _profileImageUrl = url);
       }
     } catch (e) {
-      print('Error loading profile image: $e');
+      if (mounted) setState(() => _profileImageUrl = null);
     } finally {
-      setState(() {
-        _isLoadingImage = false;
-      });
+      if (mounted) setState(() => _isLoadingImage = false);
     }
   }
 
-  Future<void> _uploadImage(File imageFile) async {
+  Future<void> _loadPatientQr() async {
+    if (!mounted) return;
+    setState(() {
+      _loadingPatientQr = true;
+      _patientQrError = null;
+    });
     try {
+      final res = await ApiService.instance.getJson('/mobile/patient/qr-code');
+      final data = res['data'];
+      final qrCodeData = data != null ? data['qrCodeData'] as String? : null;
+      if (!mounted) return;
       setState(() {
-        _isUploading = true;
+        _patientQrData = qrCodeData;
+        _patientQrError = qrCodeData == null ? 'Could not load QR code' : null;
       });
-
-      // Get the current user
-      final user = _auth.currentUser;
-      if (user == null) throw Exception('User not logged in');
-
-      // Create a reference to the image location in Firebase Storage
-      final storageRef = _storage.ref().child('profile_images/${user.uid}.jpg');
-
-      // Upload the file
-      await storageRef.putFile(imageFile);
-
-      // Get the download URL
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      // Update the user's profile in Firestore
-      await _firestore.collection('users').doc(user.uid).update({
-        'profileImageUrl': downloadUrl,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile image updated successfully'),
-          backgroundColor: Color(0xFF00C896),
-        ),
-      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to upload image: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (!mounted) return;
+      setState(() {
+        _patientQrData = null;
+        _patientQrError = 'Failed to load QR code';
+      });
     } finally {
-      setState(() {
-        _isUploading = false;
-      });
-    }
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        imageQuality: 70,
-        maxWidth: 500,
-        maxHeight: 500,
-      );
-
-      if (pickedFile != null) {
-        final imageFile = File(pickedFile.path);
-        setState(() {
-          _profileImage = imageFile;
-        });
-        await _uploadImage(imageFile);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to pick image: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) setState(() => _loadingPatientQr = false);
     }
   }
 
   void _showImagePickerOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Choose from Gallery'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Take a Photo'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    mobadraToast(context, 'Profile image upload not available yet');
   }
 
   void _showLogoutConfirmation(BuildContext context) {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-        title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+          (context) => ShadDialog.alert(
+            title: const Text('Log Out'),
+            description: const Text('Are you sure you want to log out?'),
+            actions: [
+              ShadButton.outline(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ShadButton.destructive(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _performLogout();
+                },
+                child: const Text('Log Out'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context); // Close dialog
-              await _performLogout(context);
-            },
-            child: const Text(
-              'Log Out',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Future<void> _performLogout(BuildContext context) async {
+  Future<void> _performLogout() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final familyProvider = Provider.of<FamilyProvider>(context, listen: false);
 
     try {
-      // Show loading indicator
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (dialogContext) => const Center(child: CircularProgressIndicator()),
       );
 
-      // Perform logout
-      await authService.signOut();
-
-      // Clear SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear(); // This will clear all stored data
-
-      // Clear any local data
+      await authService.logout();
       familyProvider.selectMember(null);
 
-      // Close loading indicator
-      Navigator.pop(context);
+      if (!mounted) return;
+      Navigator.of(context).pop();
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Successfully logged out'),
-          backgroundColor: Color(0xFF00C896),
+          backgroundColor: AppColors.primary,
         ),
       );
 
-      // Navigate to welcome screen and clear all previous routes
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const SplashScreen()),
-            (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
-      // Close loading indicator if it's showing
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
+      if (!mounted) return;
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
       }
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Logout failed: ${e.toString()}'),
@@ -266,8 +190,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    if (!auth.isLoggedIn) {
+      return Scaffold(
+        appBar: const MobadraAppBar(title: Text('My Profile')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(
+                Icons.person_outline,
+                size: 64,
+                color: AppColors.primary.withValues(alpha: 0.65),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Sign in to unlock your profile',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Book visits, view your QR, track points, and manage family members once you have an account.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 28),
+              ShadButton(
+                onPressed: () {
+                  Navigator.push<void>(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SignupScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Create account'),
+              ),
+              const SizedBox(height: 12),
+              ShadButton.outline(
+                onPressed: () {
+                  Navigator.push<void>(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SignInScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Sign in'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text('My Profile'), backgroundColor: Colors.white),
+      appBar: const MobadraAppBar(title: Text('My Profile')),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -291,35 +278,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Stack(
                     children: [
                       GestureDetector(
-                        onTap: _isUploading ? null : _showImagePickerOptions,
+                        onTap: _isLoadingImage ? null : _showImagePickerOptions,
                         child: Stack(
                           children: [
                             CircleAvatar(
                               radius: 50,
-                              backgroundColor: Color(0xFFE6F3EF),
+                              backgroundColor: AppColors.primaryContainer,
                               backgroundImage:
-                              _profileImage != null
-                                  ? FileImage(_profileImage!)
-                                  : (_profileImageUrl != null
-                                  ? NetworkImage(_profileImageUrl!)
-                              as ImageProvider
-                                  : null),
+                                  _profileImage != null
+                                      ? FileImage(_profileImage!)
+                                      : (_profileImageUrl != null
+                                          ? NetworkImage(_profileImageUrl!)
+                                              as ImageProvider
+                                          : null),
                               child:
-                              (_profileImage == null &&
-                                  _profileImageUrl == null)
-                                  ? Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Color(0xFF00C896),
-                              )
-                                  : null,
+                                  (_profileImage == null &&
+                                          _profileImageUrl == null)
+                                      ? Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: AppColors.primary,
+                                      )
+                                      : null,
                             ),
                             if (_isLoadingImage)
                               Container(
                                 width: 100,
                                 height: 100,
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
+                                  color: Colors.black.withValues(alpha: 0.5),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Center(
@@ -330,30 +317,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                               ),
-                            if (_isUploading)
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (!_isUploading && !_isLoadingImage)
+                            if (!_isLoadingImage)
                               Positioned(
                                 bottom: 0,
                                 right: 0,
                                 child: Container(
                                   padding: EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: Color(0xFF00C896),
+                                    color: AppColors.primary,
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -369,53 +340,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                   SizedBox(height: 16),
-                  Text(
-                    widget.username,
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'VIP Member',
-                    style: TextStyle(color: Color(0xFF00C896), fontSize: 16),
-                  ),
-                  SizedBox(height: 16),
-                  // Points display
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFE6F3EF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.star, color: Color(0xFF00C896)),
-                        SizedBox(width: 8),
-                        Text(
-                          'Your Points: ${widget.points}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  // QR Code Button
-                  ElevatedButton.icon(
-                    onPressed: () => _showQRCodeDialog(context),
-                    icon: Icon(Icons.qr_code, color: Colors.white),
-                    label: Text('View QR Code', ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF00C896),
-                      foregroundColor: Colors.white, // Sets color for text and icon
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  SizedBox(height: 10),
+                  VipMembershipCard(
+                    titleName: widget.username,
+                    tierLabel: 'VIP Member',
+                    points: widget.points,
+                    qrData: _patientQrData,
+                    isLoadingQr: _loadingPatientQr,
+                    qrErrorMessage: _patientQrError,
+                    onRetryQr: _loadPatientQr,
+                    leading: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: Colors.white.withValues(alpha: 0.35),
+                      child: Icon(
+                        Icons.verified_rounded,
+                        size: 18,
+                        color: const Color(0xFF1B1407).withValues(alpha: 0.82),
                       ),
                     ),
                   ),
@@ -435,7 +375,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   TextButton(
                     onPressed: () => _showAddFamilyMemberDialog(context),
-                    child: Text('Add New', style: TextStyle(color: Color(0xFF00C896))),
+                    child: Text(
+                      'Add New',
+                      style: TextStyle(color: AppColors.primary),
+                    ),
                   ),
                 ],
               ),
@@ -444,33 +387,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Family Members List
             _loadingFamily
                 ? Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: CircularProgressIndicator()),
-            )
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                )
                 : Consumer<FamilyProvider>(
-              builder: (context, provider, child) {
-                if (provider.familyMembers.isEmpty) {
-                  return Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'No family members added yet',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  );
-                }
-                return Column(
-                  children: [
-                    ...provider.familyMembers.map(
+                  builder: (context, provider, child) {
+                    if (provider.familyMembers.isEmpty) {
+                      return Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text(
+                          'No family members added yet',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      );
+                    }
+                    return Column(
+                      children: [
+                        ...provider.familyMembers.map(
                           (member) => _buildFamilyMemberCard(
-                        context,
-                        member,
-                        provider.selectedMember?.id == member.id,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                            context,
+                            member,
+                            provider.selectedMember?.id == member.id,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
 
             // Profile Sections
             _buildProfileSection(
@@ -481,6 +424,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => BookingHistoryScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildProfileSection(
+              title: 'Wellness',
+              icon: Icons.favorite_outline,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const WellnessScreen(),
                   ),
                 );
               },
@@ -501,9 +456,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => HelpCenterScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => HelpCenterScreen()),
                 );
               },
             ),
@@ -548,7 +501,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       child: ListTile(
-        leading: Icon(icon, color: Color(0xFF00C896)),
+        leading: Icon(icon, color: AppColors.primary),
         title: Text(title),
         trailing: Icon(Icons.chevron_right),
         onTap: onTap,
@@ -557,19 +510,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildFamilyMemberCard(
-      BuildContext context,
-      FamilyMember member,
-      bool isSelected,
-      ) {
+    BuildContext context,
+    FamilyMember member,
+    bool isSelected,
+  ) {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      color: isSelected ? Color(0xFFE6F3EF) : Colors.white,
+      color: isSelected ? AppColors.primaryContainer : Colors.white,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Color(0xFF00C896).withOpacity(0.2),
+          backgroundColor: AppColors.primary.withValues(alpha: 0.2),
           child: Icon(
             _getRelationshipIcon(member.relationship),
-            color: Color(0xFF00C896),
+            color: AppColors.primary,
           ),
         ),
         title: Text('${member.firstName} ${member.lastName}'),
@@ -578,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.qr_code, color: Color(0xFF00C896)),
+              icon: Icon(Icons.qr_code, color: AppColors.primary),
               onPressed: () => _showFamilyMemberQRCodeDialog(context, member),
               tooltip: 'Show QR Code',
             ),
@@ -641,116 +594,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: Text('Add Family Member'),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(labelText: 'Relationship'),
-                  items:
-                  relationships
-                      .map(
-                        (rel) => DropdownMenuItem(
-                      value: rel,
-                      child: Text(rel),
+            title: Text('Add Family Member'),
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(labelText: 'Relationship'),
+                      items:
+                          relationships
+                              .map(
+                                (rel) => DropdownMenuItem(
+                                  value: rel,
+                                  child: Text(rel),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) => selectedRelationship = value,
+                      validator: (value) => value == null ? 'Required' : null,
                     ),
-                  )
-                      .toList(),
-                  onChanged: (value) => selectedRelationship = value,
-                  validator: (value) => value == null ? 'Required' : null,
-                ),
-                SizedBox(height: 12),
-                TextFormField(
-                  controller: firstNameController,
-                  decoration: InputDecoration(labelText: 'First Name'),
-                  validator:
-                      (value) => value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                SizedBox(height: 12),
-                TextFormField(
-                  controller: lastNameController,
-                  decoration: InputDecoration(labelText: 'Last Name'),
-                  validator:
-                      (value) => value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                SizedBox(height: 12),
-                TextFormField(
-                  controller: nationalIdController,
-                  decoration: InputDecoration(labelText: 'National ID'),
-                  keyboardType: TextInputType.number,
-                  validator:
-                      (value) => value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                SizedBox(height: 12),
-                TextFormField(
-                  controller: phoneController,
-                  decoration: InputDecoration(labelText: 'Phone Number'),
-                  keyboardType: TextInputType.phone,
-                  validator:
-                      (value) => value?.isEmpty ?? true ? 'Required' : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState?.validate() ?? false) {
-                final user = FirebaseAuth.instance.currentUser;
-                if (user == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'You must be signed in to add a family member.',
-                      ),
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: firstNameController,
+                      decoration: InputDecoration(labelText: 'First Name'),
+                      validator:
+                          (value) => value?.isEmpty ?? true ? 'Required' : null,
                     ),
-                  );
-                  return;
-                }
-                final familyCollection = FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .collection('family');
-                final docRef = await familyCollection.add({
-                  'relationship': selectedRelationship!,
-                  'firstName': firstNameController.text,
-                  'lastName': lastNameController.text,
-                  'nationalId': nationalIdController.text,
-                  'phoneNumber': phoneController.text,
-                  'parentUserId': user.uid,
-                  'createdAt': FieldValue.serverTimestamp(),
-                });
-                final newMember = FamilyMember(
-                  id: docRef.id,
-                  relationship: selectedRelationship!,
-                  firstName: firstNameController.text,
-                  lastName: lastNameController.text,
-                  nationalId: nationalIdController.text,
-                  phoneNumber: phoneController.text,
-                );
-                Provider.of<FamilyProvider>(
-                  context,
-                  listen: false,
-                ).addFamilyMember(newMember);
-                Navigator.pop(context);
-                _loadFamily();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF00C896),
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: lastNameController,
+                      decoration: InputDecoration(labelText: 'Last Name'),
+                      validator:
+                          (value) => value?.isEmpty ?? true ? 'Required' : null,
+                    ),
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: nationalIdController,
+                      decoration: InputDecoration(labelText: 'National ID'),
+                      keyboardType: TextInputType.number,
+                      validator:
+                          (value) => value?.isEmpty ?? true ? 'Required' : null,
+                    ),
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: phoneController,
+                      decoration: InputDecoration(labelText: 'Phone Number'),
+                      keyboardType: TextInputType.phone,
+                      validator:
+                          (value) => value?.isEmpty ?? true ? 'Required' : null,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: Text('Save', style: TextStyle(color: Colors.white)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (formKey.currentState?.validate() ?? false) {
+                    final newMember = FamilyMember(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      relationship: selectedRelationship!,
+                      firstName: firstNameController.text,
+                      lastName: lastNameController.text,
+                      nationalId: nationalIdController.text,
+                      phoneNumber: phoneController.text,
+                    );
+                    Provider.of<FamilyProvider>(
+                      context,
+                      listen: false,
+                    ).addFamilyMember(newMember);
+                    Navigator.pop(context);
+                    _loadFamily();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
+                child: Text('Save', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -774,110 +703,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder:
           (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text('Edit Family Member'),
-            content: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      value: selectedRelationship,
-                      decoration: InputDecoration(
-                        labelText: 'Relationship',
-                      ),
-                      items:
-                      relationships
-                          .map(
-                            (rel) => DropdownMenuItem(
-                          value: rel,
-                          child: Text(rel),
+            builder: (context, setState) {
+              return AlertDialog(
+                title: Text('Edit Family Member'),
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: selectedRelationship,
+                          decoration: InputDecoration(
+                            labelText: 'Relationship',
+                          ),
+                          items:
+                              relationships
+                                  .map(
+                                    (rel) => DropdownMenuItem(
+                                      value: rel,
+                                      child: Text(rel),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedRelationship = value!;
+                            });
+                          },
+                          validator:
+                              (value) => value == null ? 'Required' : null,
                         ),
-                      )
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedRelationship = value!;
-                        });
-                      },
-                      validator:
-                          (value) => value == null ? 'Required' : null,
+                        SizedBox(height: 12),
+                        TextFormField(
+                          controller: firstNameController,
+                          decoration: InputDecoration(labelText: 'First Name'),
+                          validator:
+                              (value) =>
+                                  value?.isEmpty ?? true ? 'Required' : null,
+                        ),
+                        SizedBox(height: 12),
+                        TextFormField(
+                          controller: lastNameController,
+                          decoration: InputDecoration(labelText: 'Last Name'),
+                          validator:
+                              (value) =>
+                                  value?.isEmpty ?? true ? 'Required' : null,
+                        ),
+                        SizedBox(height: 12),
+                        TextFormField(
+                          controller: nationalIdController,
+                          decoration: InputDecoration(labelText: 'National ID'),
+                          keyboardType: TextInputType.number,
+                          validator:
+                              (value) =>
+                                  value?.isEmpty ?? true ? 'Required' : null,
+                        ),
+                        SizedBox(height: 12),
+                        TextFormField(
+                          controller: phoneController,
+                          decoration: InputDecoration(
+                            labelText: 'Phone Number',
+                          ),
+                          keyboardType: TextInputType.phone,
+                          validator:
+                              (value) =>
+                                  value?.isEmpty ?? true ? 'Required' : null,
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 12),
-                    TextFormField(
-                      controller: firstNameController,
-                      decoration: InputDecoration(labelText: 'First Name'),
-                      validator:
-                          (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                    ),
-                    SizedBox(height: 12),
-                    TextFormField(
-                      controller: lastNameController,
-                      decoration: InputDecoration(labelText: 'Last Name'),
-                      validator:
-                          (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                    ),
-                    SizedBox(height: 12),
-                    TextFormField(
-                      controller: nationalIdController,
-                      decoration: InputDecoration(labelText: 'National ID'),
-                      keyboardType: TextInputType.number,
-                      validator:
-                          (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                    ),
-                    SizedBox(height: 12),
-                    TextFormField(
-                      controller: phoneController,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                      ),
-                      keyboardType: TextInputType.phone,
-                      validator:
-                          (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (formKey.currentState?.validate() ?? false) {
-                    final updatedMember = FamilyMember(
-                      id: member.id,
-                      relationship: selectedRelationship,
-                      firstName: firstNameController.text,
-                      lastName: lastNameController.text,
-                      nationalId: nationalIdController.text,
-                      phoneNumber: phoneController.text,
-                    );
-
-                    // You'll need to add an update method to your FamilyProvider
-                    // Provider.of<FamilyProvider>(context, listen: false)
-                    //   .updateFamilyMember(updatedMember);
-
-                    Navigator.pop(context);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                ),
-                child: Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (formKey.currentState?.validate() ?? false) {
+                        // TODO: FamilyProvider.updateFamilyMember(FamilyMember(...))
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                    ),
+                    child: Text('Save'),
+                  ),
+                ],
+              );
+            },
+          ),
     );
   }
 
@@ -886,168 +803,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: Text('Delete Family Member?'),
-        content: Text(
-          'Are you sure you want to remove ${member.firstName}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Provider.of<FamilyProvider>(
-                context,
-                listen: false,
-              ).removeFamilyMember(member.id);
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showQRCodeDialog(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Your QR Code',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF00C896),
-                ),
-              ),
-              SizedBox(height: 24),
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0xFF00C896),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: QrImageView(
-                  data: user.uid,
-                  version: QrVersions.auto,
-                  size: 200.0,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              SizedBox(height: 24),
-              Text(
-                'One of our coordinators should scan this for you to enjoy our services',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
-              ),
-              SizedBox(height: 24),
+            title: Text('Delete Family Member?'),
+            content: Text(
+              'Are you sure you want to remove ${member.firstName}?',
+            ),
+            actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Close',
-                  style: TextStyle(
-                    color: Color(0xFF00C896),
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Provider.of<FamilyProvider>(
+                    context,
+                    listen: false,
+                  ).removeFamilyMember(member.id);
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: Text('Delete', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 
   void _showFamilyMemberQRCodeDialog(
-      BuildContext context,
-      FamilyMember member,
-      ) {
-    showDialog(
+    BuildContext context,
+    FamilyMember member,
+  ) {
+    showModalBottomSheet<void>(
       context: context,
-      builder:
-          (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Family Member QR Code',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF00C896),
-                ),
-              ),
-              SizedBox(height: 24),
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0xFF00C896),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: QrImageView(
-                  data: member.id,
-                  version: QrVersions.auto,
-                  size: 200.0,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              SizedBox(height: 24),
-              Text(
-                'Show this QR code to a coordinator for family member services',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
-              ),
-              SizedBox(height: 24),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Close',
-                  style: TextStyle(
-                    color: Color(0xFF00C896),
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.md),
+                VipMembershipCard(
+                  titleName: '${member.firstName} ${member.lastName}',
+                  tierLabel: member.relationship,
+                  points: 0,
+                  qrData: member.id,
+                  onTap: () => Navigator.pop(sheetContext),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(sheetContext),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.black.withValues(alpha: 0.25),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                      ),
+                    ),
+                    child: const Text(
+                      'Close',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

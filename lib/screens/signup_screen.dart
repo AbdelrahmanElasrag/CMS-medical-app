@@ -1,10 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:cms/widgets/custom_scaffold.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cms/theme/theme.dart';
-import 'package:cms/screens/home_screen.dart';
-import 'package:cms/screens/signin_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../theme/app_tokens.dart';
+import '../ui/auth_form_styles.dart';
+import '../ui/mobadra_motion.dart';
+import '../ui/mobadra_surface.dart';
+import '../ui/mobadra_toast.dart';
+import '../widgets/custom_scaffold.dart';
+import 'signin_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -14,268 +20,242 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  String dropdownValue = 'Ongoing';
   final _formSignupKey = GlobalKey<FormState>();
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nationalIDController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool agreePersonalData = true;
+  bool _loading = false;
+  bool _obscurePassword = true;
 
-  // Save User Data to Firestore without OTP or verification
-  Future<void> _saveUserDataToFirestore() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      // Handle the case when user is not logged in (shouldn't happen if phone auth is set up properly)
-      return;
-    }
-
-    final userId = user.uid;
-
-    await FirebaseFirestore.instance.collection('users').doc(userId).set({
-      'firstName': _firstNameController.text.trim(),
-      'lastName': _lastNameController.text.trim(),
-      'phone': _phoneController.text.trim(),
-      'nationalId': _nationalIDController.text.trim(),
-      'insuranceStatus': dropdownValue,
-      'points': 0,
-      'qrCodeData': userId, // Store the UID for QR code
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _nationalIDController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
-
-  // Navigate to Home Screen after saving data
-  void _goToHomeScreen(String firstName) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HomeScreen(username: firstName, points: 0),
-      ),
-    );
+  Future<void> _signUp() async {
+    if (!_formSignupKey.currentState!.validate()) return;
+    if (!agreePersonalData) {
+      mobadraToast(context, 'Please agree to the processing of personal data', error: true);
+      return;
+    }
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final nationalId = _nationalIDController.text.trim();
+    final password = _passwordController.text;
+    setState(() => _loading = true);
+    try {
+      await context.read<AuthService>().signup(
+            name: name,
+            phone: phone,
+            nationalId: nationalId,
+            password: password,
+          );
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      mobadraToast(context, e.message, error: true);
+    } catch (e) {
+      if (!mounted) return;
+      mobadraToast(context, 'Registration failed: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = ShadTheme.of(context).colorScheme;
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return CustomScaffold(
-      child: Column(
-        children: [
-          const Expanded(flex: 1, child: SizedBox(height: 10)),
-          Expanded(
-            flex: 7,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(25.0, 50.0, 25.0, 20.0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40.0),
-                  topRight: Radius.circular(40.0),
-                ),
-              ),
-              child: SingleChildScrollView(
-                child: Form(
-                  key: _formSignupKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Get Started',
-                        style: TextStyle(
-                          fontSize: 30.0,
-                          fontWeight: FontWeight.w900,
-                          color: lightColorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 40.0),
-
-                      // First Name
-                      TextFormField(
-                        controller: _firstNameController,
-                        validator:
-                            (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter First name'
-                            : null,
-                        decoration: _inputDecoration(
-                          'First Name',
-                          'Enter First Name',
-                        ),
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Last Name
-                      TextFormField(
-                        controller: _lastNameController,
-                        validator:
-                            (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter Last Name'
-                            : null,
-                        decoration: _inputDecoration(
-                          'Last Name',
-                          'Enter Last Name',
-                        ),
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Phone Number
-                      TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        validator:
-                            (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please enter Phone Number'
-                            : null,
-                        decoration: _inputDecoration(
-                          'Phone Number',
-                          'Enter Phone Number (e.g. +971...)',
-                        ),
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // National ID
-                      TextFormField(
-                        controller: _nationalIDController,
-                        obscureText: true,
-                        obscuringCharacter: '*',
-                        validator:
-                            (value) =>
-                        value == null || value.isEmpty
-                            ? 'Please Enter National ID'
-                            : null,
-                        decoration: _inputDecoration(
-                          'National ID',
-                          'Enter National ID',
-                        ),
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Dropdown for Insurance Status
-                      DropdownButtonFormField<String>(
-                        value: dropdownValue,
-                        iconEnabledColor: Colors.black26,
-                        decoration: _inputDecoration(
-                          'Insurance Status',
-                          'Select Status',
-                        ).copyWith(
-                          prefixIcon: const Icon(
-                            Icons.menu,
-                            color: Colors.black26,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20, 8, 20, bottomInset + 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: MobadraAuthSheet(
+                  child: Form(
+                    key: _formSignupKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Create Account',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ).mobadraFadeSlide(),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Please enter your clinical credentials to begin.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                            height: 1.35,
                           ),
-                        ),
-                        onChanged: (String? newValue) {
-                          setState(() => dropdownValue = newValue!);
-                        },
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'Ongoing',
-                            child: Text('Ongoing'),
+                        ).mobadraFadeSlide(delayMs: 40),
+                        const SizedBox(height: 26),
+                        authCapsLabel('Full Name'),
+                        TextFormField(
+                          controller: _nameController,
+                          validator: (value) =>
+                              value == null || value.isEmpty ? 'Please enter your name' : null,
+                          decoration: authFilledDecoration(
+                            hintText: 'Dr. Sarah Al-Sayed',
+                            suffixIcon: Icon(Icons.person_outline, color: Colors.grey.shade600),
                           ),
-                          DropdownMenuItem(
-                            value: 'Expired',
-                            child: Text('Expired'),
+                        ).mobadraFadeSlide(delayMs: 50),
+                        const SizedBox(height: 16),
+                        authCapsLabel('Phone Number'),
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          validator: (value) =>
+                              value == null || value.isEmpty ? 'Please enter phone number' : null,
+                          decoration: authFilledDecoration(
+                            hintText: '+971 -- --- ----',
+                            suffixIcon: Icon(Icons.phone_outlined, color: Colors.grey.shade600),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Agreement Checkbox
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: agreePersonalData,
-                            onChanged:
-                                (bool? value) =>
-                                setState(() => agreePersonalData = value!),
-                            activeColor: lightColorScheme.primary,
+                        ).mobadraFadeSlide(delayMs: 65),
+                        const SizedBox(height: 16),
+                        authCapsLabel('National ID'),
+                        TextFormField(
+                          controller: _nationalIDController,
+                          keyboardType: TextInputType.text,
+                          validator: (value) =>
+                              value == null || value.isEmpty ? 'Please enter National ID' : null,
+                          decoration: authFilledDecoration(
+                            hintText: '784-XXXX-XXXXXXX-X',
+                            suffixIcon: Icon(Icons.perm_identity_outlined, color: Colors.grey.shade600),
                           ),
-                          const Text(
-                            'I agree to the processing of ',
-                            style: TextStyle(color: Colors.black45),
-                          ),
-                          Text(
-                            'Personal data',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: lightColorScheme.primary,
+                        ).mobadraFadeSlide(delayMs: 80),
+                        const SizedBox(height: 16),
+                        authCapsLabel('Password'),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Please enter password';
+                            if (value.length < 8) return 'Password must be at least 8 characters';
+                            return null;
+                          },
+                          decoration: authFilledDecoration(
+                            hintText: '••••••••••••',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                color: Colors.grey.shade600,
+                              ),
+                              onPressed: () {
+                                setState(() => _obscurePassword = !_obscurePassword);
+                              },
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Sign Up Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (_formSignupKey.currentState!.validate() &&
-                                agreePersonalData) {
-                              // Check if user already exists by phone or national ID
-                              final existingUsers = await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .where('phone', isEqualTo: _phoneController.text.trim())
-                                  .get();
-                              final existingNationalId = await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .where('nationalId', isEqualTo: _nationalIDController.text.trim())
-                                  .get();
-                              if (existingUsers.docs.isNotEmpty || existingNationalId.docs.isNotEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('A user with this phone or national ID already exists.')),
-                                );
-                                return;
-                              }
-                              // Navigate to Sign In screen with pre-filled data
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => SignInScreen(
-                                    prefillFirstName: _firstNameController.text.trim(),
-                                    prefillLastName: _lastNameController.text.trim(),
-                                    prefillPhone: _phoneController.text.trim(),
-                                    prefillNationalId: _nationalIDController.text.trim(),
-                                    prefillInsuranceStatus: dropdownValue,
-                                  ),
-                                ),
-                              );
-                            } else if (!agreePersonalData) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please agree to the processing of personal data'),
-                                ),
-                              );
-                            }
-                          },
-                          child: const Text("Sign Up"),
+                        ).mobadraFadeSlide(delayMs: 95),
+                        const SizedBox(height: 14),
+                        ShadCheckbox(
+                          value: agreePersonalData,
+                          onChanged: (v) => setState(() => agreePersonalData = v),
+                          label: Text(
+                            'I agree to the processing of Personal data',
+                            style: TextStyle(
+                              color: scheme.foreground.withValues(alpha: 0.85),
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 22),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.45),
+                                blurRadius: 18,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                elevation: 0,
+                              ),
+                              onPressed: _loading ? null : () => _signUp(),
+                              child: _loading
+                                  ? const SizedBox(
+                                      height: 22,
+                                      width: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'Create Account',
+                                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Icon(Icons.arrow_forward_rounded, size: 20),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ).mobadraFadeSlide(delayMs: 110),
+                        const SizedBox(height: 22),
+                        Text(
+                          'Already a member?',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute<void>(builder: (_) => const SignInScreen()),
+                            );
+                          },
+                          child: const Text(
+                            'Sign In to Mobadra',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Helper function for input field decoration
-  InputDecoration _inputDecoration(String label, String hint) {
-    return InputDecoration(
-      label: Text(label),
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.black26),
-      border: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.black12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.black12),
-        borderRadius: BorderRadius.circular(10),
+          );
+        },
       ),
     );
   }

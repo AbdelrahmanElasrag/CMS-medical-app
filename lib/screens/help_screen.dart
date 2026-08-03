@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:cms/ui/mobadra_ui.dart';
+
 // A simple class to hold our FAQ data
 class FaqItem {
   final String question;
@@ -12,7 +14,17 @@ class FaqItem {
 }
 
 class HelpCenterScreen extends StatelessWidget {
-  HelpCenterScreen({Key? key}) : super(key: key);
+  HelpCenterScreen({super.key});
+  static const String _supportEmail = 'info@creativemultisolutions.com';
+  static const String _supportPhone = '+971508339005';
+  static const String _privacyPolicyUrl = String.fromEnvironment(
+    'PRIVACY_POLICY_URL',
+    defaultValue: 'https://www.creativemultisolutions.com/privacy',
+  );
+  static const String _termsUrl = String.fromEnvironment(
+    'TERMS_OF_SERVICE_URL',
+    defaultValue: 'https://www.creativemultisolutions.com/terms',
+  );
 
   // --- List of Frequently Asked Questions ---
   // You can easily add, edit, or remove items from this list.
@@ -43,8 +55,7 @@ class HelpCenterScreen extends StatelessWidget {
   Future<void> _launchUrlHelper(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri)) {
-      // In a real app, you'd show a more user-friendly error.
-      print('Could not launch $url');
+      debugPrint('Could not launch $url');
     }
   }
 
@@ -53,11 +64,7 @@ class HelpCenterScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Help & Support'),
-        // Use the theme's color for the back button
-        iconTheme: IconThemeData(color: theme.primaryColor),
-      ),
+      appBar: const MobadraAppBar(title: Text('Help & Support')),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
@@ -73,7 +80,7 @@ class HelpCenterScreen extends StatelessWidget {
               margin: const EdgeInsets.symmetric(vertical: 4.0),
               child: ExpansionTile(
                 iconColor: theme.primaryColor,
-                collapsedIconColor: theme.colorScheme.onSurface.withOpacity(0.7),
+                collapsedIconColor: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 title: Text(
                   item.question,
                   style: const TextStyle(fontWeight: FontWeight.w600),
@@ -86,7 +93,7 @@ class HelpCenterScreen extends StatelessWidget {
                 ],
               ),
             );
-          }).toList(),
+          }),
 
           const SizedBox(height: 32),
           const Divider(),
@@ -110,7 +117,7 @@ class HelpCenterScreen extends StatelessWidget {
             children: [
               ElevatedButton.icon(
                 onPressed: () {
-                  _launchUrlHelper('mailto:support@example.com');
+                  _launchUrlHelper('mailto:$_supportEmail');
                 },
                 icon: const Icon(Icons.email),
                 label: const Text('Email Us'),
@@ -121,8 +128,7 @@ class HelpCenterScreen extends StatelessWidget {
               ),
               ElevatedButton.icon(
                 onPressed: () {
-                  // Remember to replace with your actual support phone number
-                  _launchUrlHelper('tel:+1234567890');
+                  _launchUrlHelper('tel:$_supportPhone');
                 },
                 icon: const Icon(Icons.phone),
                 label: const Text('Call Us'),
@@ -132,6 +138,15 @@ class HelpCenterScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 20),
+          TextButton(
+            onPressed: () => _launchUrlHelper(_privacyPolicyUrl),
+            child: const Text('Privacy Policy'),
+          ),
+          TextButton(
+            onPressed: () => _launchUrlHelper(_termsUrl),
+            child: const Text('Terms of Service'),
           ),
         ],
       ),

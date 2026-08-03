@@ -1,0 +1,50 @@
+{
+  "@@locale": "en",
+  "appTitle": "Creative Mobadra",
+  "healthAssistantTitle": "Health assistant",
+  "symptomCheckTab": "Symptom check",
+  "commonQuestionsTab": "Common questions",
+  "languageMenu": "Language",
+  "languageEnglish": "English",
+  "languageArabic": "العربية",
+  "disclaimerTitle": "Before you continue",
+  "disclaimerBody": "This assistant uses a fixed questionnaire (rule-based choices only). It is not generative AI, not a diagnosis, and not a substitute for a licensed clinician. Answers stay on your device unless you choose to share them (for example in booking notes).\n\nIf you might be having an emergency—chest pain with shortness of breath, signs of stroke, severe bleeding, confusion, or you cannot breathe—call your local emergency number or go to the nearest emergency department.\n\nClinical teams should review assets/rule_based_triage.json before treating this flow as production-ready medical guidance.\n\nBy continuing, you confirm you understand these limits.",
+  "iUnderstandContinue": "I understand — continue",
+  "loadingQuestionnaire": "Loading questionnaire…",
+  "noSession": "No session.",
+  "analyzing": "Analyzing…",
+  "noResults": "No results.",
+  "notADiagnosisBanner": "This is not a diagnosis. If you feel seriously unwell, seek in-person care or emergency services.",
+  "whyNoCauseTitle": "Why we do not name a cause here",
+  "whyNoCauseBody": "This screen reflects how your tapped answers map to a general care level for planning. It does not identify what is causing your symptoms—many different conditions can produce similar patterns on a short questionnaire. Only an in-person clinician, with a full history and exam (and tests if needed), can narrow down causes.",
+  "aboutVisitTitle": "About an in-person visit",
+  "visitGuidanceEmergency": "For this level, many services would want you assessed urgently in person (for example emergency services or the nearest emergency department), especially if symptoms are severe, sudden, or worsening. A routine visit later is not a substitute when emergency patterns may apply.",
+  "visitGuidanceUrgent": "For this level, same-day or urgent in-person care is often reasonable if symptoms are significant or you are unsure. You can still book a routine visit if that is what you have access to—but do not delay if you feel worse.",
+  "visitGuidanceGp": "For this level, a routine or soon clinician visit is often appropriate if symptoms persist, keep coming back, or worry you. It is not mandatory for every person; use how you feel in real life as the final guide.",
+  "visitGuidanceSelfCare": "For this level, many people start with self-care and monitoring, and book a visit if things change or worsen. A visit is not ruled out—book one whenever you want reassurance or symptoms drag on.",
+  "assistantLegalFooter": "This assistant offers general education and care-planning suggestions only. It is not medical or legal advice for your specific situation; your clinician and local rules apply.",
+  "additionalNotes": "Additional notes: {hint}",
+  "@additionalNotes": {
+    "placeholders": {
+      "hint": {}
+    }
+  },
+  "possibleConditionsRanked": "Possible conditions (ranked)",
+  "bookVisitUrgent": "Book a visit — urgent",
+  "bookVisit": "Book a visit",
+  "stillBookVisit": "Still book a visit",
+  "startOver": "Start over",
+  "tryAgain": "Try again",
+  "somethingWentWrong": "Something went wrong.",
+  "couldNotLoadQuestionnaire": "Could not load questionnaire: {error}",
+  "@couldNotLoadQuestionnaire": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "headlineEmergency": "Emergency-level concern possible",
+  "headlineUrgent": "Urgent medical care may be appropriate",
+  "headlineGp": "Consider booking a routine visit",
+  "headlineSelfCare": "Lower acuity — self-care or routine follow-up",
+  "serviceBookVisit": "Book visit"
+}

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'family_member.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FamilyProvider with ChangeNotifier {
   List<FamilyMember> _familyMembers = [];
@@ -33,30 +31,13 @@ class FamilyProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Load family members. No backend API yet - keeps local list only.
   Future<void> loadFamilyMembers() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final familyCollection = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('family');
-    final snapshot = await familyCollection.get();
-    _familyMembers = snapshot.docs.map((doc) {
-      final data = doc.data();
-      return FamilyMember(
-        id: doc.id,
-        relationship: data['relationship'] ?? '',
-        firstName: data['firstName'] ?? '',
-        lastName: data['lastName'] ?? '',
-        nationalId: data['nationalId'] ?? '',
-        phoneNumber: data['phoneNumber'] ?? '',
-        dateOfBirth: data['dateOfBirth'] != null ? DateTime.tryParse(data['dateOfBirth']) : null,
-      );
-    }).toList();
+    _familyMembers = [];
     notifyListeners();
   }
 
   Future<void> saveFamilyMembers() async {
-    // Implement your saving logic
+    // No backend persistence for family members yet
   }
 }

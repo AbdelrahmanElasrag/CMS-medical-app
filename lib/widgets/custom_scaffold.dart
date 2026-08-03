@@ -1,31 +1,29 @@
-// lib/widgets/custom_scaffold.dart
-
 import 'package:flutter/material.dart';
 
+import '../ui/auth_gradient_background.dart';
+
+/// Animated green–blue gradient background with a transparent app bar for auth flows.
 class CustomScaffold extends StatelessWidget {
   const CustomScaffold({super.key, this.child});
+
   final Widget? child;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        // --- THIS IS THE ONLY CHANGE NEEDED HERE ---
-        // Change the icon theme to white so the auto-generated back button is white.
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: Colors.white.withValues(alpha: 0.95)),
+        foregroundColor: Colors.white.withValues(alpha: 0.95),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
       ),
-      extendBodyBehindAppBar: true,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          Image.asset('assets/images/Tons.jpeg',
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          ),
-          SafeArea(
-            child: child!,
-          ),
+          const AuthGradientBackground(),
+          SafeArea(child: child!),
         ],
       ),
     );
