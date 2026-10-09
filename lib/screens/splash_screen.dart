@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:cms/ui/lumen_field.dart';
+
 /// White splash with logo (cold start while session restores).
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -33,8 +35,12 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const LumenField(),
+          Center(
         child: AnimatedBuilder(
           animation: _pulse,
           builder: (context, child) {
@@ -49,6 +55,8 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
             fit: BoxFit.contain,
           ),
         ),
+      ),
+        ],
       ),
     );
   }

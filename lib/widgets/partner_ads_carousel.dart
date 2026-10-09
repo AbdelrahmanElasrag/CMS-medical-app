@@ -6,6 +6,9 @@ import 'package:provider/provider.dart';
 import 'package:cms/services/api_service.dart';
 import 'package:cms/services/auth_service.dart';
 import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
+import 'package:cms/ui/concierge/membership_access_card.dart';
+import 'package:cms/ui/concierge/skeleton_box.dart';
 import 'package:cms/ui/offer_sheet.dart';
 
 /// Auto-advancing carousel for partner offers / promos on the home screen.
@@ -31,12 +34,29 @@ class _PartnerAdsCarouselState extends State<PartnerAdsCarousel> {
   int _page = 0;
   Timer? _autoTimer;
 
-  static const double _height = 186;
+  static const double _height = 168;
+
+  bool? _trackedSignIn;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final signedIn = context.watch<AuthService>().isLoggedIn;
+    if (_trackedSignIn != signedIn) {
+      final previous = _trackedSignIn;
+      _trackedSignIn = signedIn;
+      if (previous != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _load();
+        });
+      }
+    }
+    return _buildCarousel(context, signedIn);
   }
 
   @override
@@ -55,7 +75,7 @@ class _PartnerAdsCarouselState extends State<PartnerAdsCarousel> {
         _loading = false;
         _error = null;
       });
-      _restartAutoAdvance();
+      _autoTimer?.cancel();
       return;
     }
 
@@ -115,50 +135,13 @@ class _PartnerAdsCarouselState extends State<PartnerAdsCarousel> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final auth = context.watch<AuthService>();
-
-    if (!auth.isLoggedIn) {
-      return SizedBox(
-        height: _height,
-        child: _FallbackSlide(
-          title: 'Member-only offers',
-          subtitle: 'Sign in to browse partner discounts and promos',
-          gradientColors: [cs.primary, cs.primary.withValues(alpha: 0.75)],
-          icon: Icons.lock_outline_rounded,
-          onTap: widget.onViewAllOffers,
-          cta: 'Sign in',
-        ),
-      );
+  Widget _buildCarousel(BuildContext context, bool signedIn) {
+    if (!signedIn) {
+      return const MembershipAccessCard();
     }
 
     if (_loading) {
-      return SizedBox(
-        height: _height,
-        child: Container(
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            boxShadow: [
-              BoxShadow(
-                color: cs.shadow.withValues(alpha: 0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Center(
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child:
-                  CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
-            ),
-          ),
-        ),
-      );
+      return const SkeletonBox(height: 148, radius: AppRadii.lg);
     }
 
     return Column(
@@ -176,10 +159,9 @@ class _PartnerAdsCarouselState extends State<PartnerAdsCarousel> {
               if (_error != null && _offers.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: _FallbackSlide(
+                  child: _QuietSlide(
                     title: 'Could not load offers',
                     subtitle: 'Check your connection, then retry.',
-                    gradientColors: [cs.primary, cs.primary.withValues(alpha: 0.75)],
                     icon: Icons.wifi_off_outlined,
                     onTap: _load,
                     cta: 'Retry',
@@ -198,11 +180,10 @@ class _PartnerAdsCarouselState extends State<PartnerAdsCarousel> {
                 }
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: _FallbackSlide(
+                  child: _QuietSlide(
                     title: 'All partner offers',
-                    subtitle: 'Browse discounts, hospital promos & more',
-                    gradientColors: [cs.tertiary, cs.primary],
-                    icon: Icons.local_offer_rounded,
+                    subtitle: 'Browse discounts and hospital privileges.',
+                    icon: Icons.local_offer_outlined,
                     onTap: widget.onViewAllOffers,
                     cta: 'View offers',
                   ),
@@ -211,11 +192,10 @@ class _PartnerAdsCarouselState extends State<PartnerAdsCarousel> {
               if (index == 0) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: _FallbackSlide(
-                    title: 'Partner offers & discounts',
-                    subtitle: 'New promos appear here when hospitals publish them',
-                    gradientColors: [cs.primary, const Color(0xFF2563EB)],
-                    icon: Icons.percent_rounded,
+                  child: _QuietSlide(
+                    title: 'Partner offers',
+                    subtitle: 'New privileges appear here when hospitals publish them.',
+                    icon: Icons.local_offer_outlined,
                     onTap: widget.onViewAllOffers,
                     cta: 'Browse offers',
                   ),
@@ -223,10 +203,9 @@ class _PartnerAdsCarouselState extends State<PartnerAdsCarousel> {
               }
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4),
-                child: _FallbackSlide(
+                child: _QuietSlide(
                   title: 'About Creative Mobadra',
-                  subtitle: 'Your member hub for partner hospitals in the UAE',
-                  gradientColors: [const Color(0xFF0F766E), cs.primary],
+                  subtitle: 'Your member service for partner hospitals in the UAE.',
                   icon: Icons.info_outline_rounded,
                   onTap: widget.onShowAbout,
                   cta: 'Learn more',
@@ -248,7 +227,7 @@ class _PartnerAdsCarouselState extends State<PartnerAdsCarousel> {
                 height: 6,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(99),
-                  color: active ? cs.primary : cs.outline.withValues(alpha: 0.35),
+                  color: active ? ConciergePalette.emerald(context) : ConciergePalette.line(context),
                 ),
               );
             }),
@@ -267,120 +246,136 @@ class _OfferSlide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final ink = ConciergePalette.ink(context);
+    final muted = ConciergePalette.muted(context);
     final title = offer['title']?.toString() ?? 'Partner offer';
     final subtitle = offer['subtitle']?.toString();
     final hospital = offer['hospital'] is Map ? (offer['hospital'] as Map)['name']?.toString() : null;
     final imageUrl = offer['imageUrl']?.toString();
 
-    return PhysicalModel(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadii.lg),
-      elevation: 8,
-      shadowColor: cs.shadow.withValues(alpha: 0.22),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            clipBehavior: Clip.antiAliasWithSaveLayer,
-            child: ColoredBox(
-              color: cs.surface,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 11,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (imageUrl != null && imageUrl.isNotEmpty)
-                          Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => ColoredBox(color: cs.primaryContainer),
-                          )
-                        else
-                          ColoredBox(
-                            color: Color.lerp(cs.primaryContainer, cs.surfaceContainerHighest, 0.4)!,
-                          ),
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: cs.tertiary.withValues(alpha: 0.95),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              child: Text(
-                                'Partner deal',
-                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    flex: 9,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  title,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                        color: cs.onSurface,
-                                        fontWeight: FontWeight.w800,
-                                        height: 1.2,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (hospital != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              hospital,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: cs.primary, fontSize: 12.5, fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                          if (subtitle != null && subtitle.isNotEmpty) ...[
-                            SizedBox(height: hospital != null ? 2 : 4),
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.topLeft,
-                                child: Text(
-                                  subtitle,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.grey[700], fontSize: 12, height: 1.25),
-                                ),
-                              ),
-                            ),
-                          ] else
-                            const Spacer(),
-                        ],
+    return _FillCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 5,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (imageUrl != null && imageUrl.isNotEmpty)
+                  Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => ColoredBox(
+                      color: ConciergePalette.emeraldWash(context),
+                      child: Center(
+                        child: Icon(Icons.local_hospital_outlined, color: ConciergePalette.emerald(context)),
                       ),
                     ),
+                  )
+                else
+                  ColoredBox(
+                    color: ConciergePalette.emeraldWash(context),
+                    child: Center(
+                      child: Icon(Icons.local_hospital_outlined, color: ConciergePalette.emerald(context)),
+                    ),
                   ),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: ConciergePalette.surface(context),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: ConciergePalette.gold(context).withValues(alpha: 0.7)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      child: Text('Partner', style: ConciergeType.label(ConciergePalette.goldInk(context))),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ConciergeType.title(ink).copyWith(fontSize: 15),
+                  ),
+                  if (hospital != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      hospital,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ConciergeType.caption(ConciergePalette.emerald(context)).copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ConciergeType.caption(muted),
+                    ),
+                  ],
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FillCard extends StatelessWidget {
+  const _FillCard({
+    required this.child,
+    required this.onTap,
+    this.gold = false,
+  });
+
+  final Widget child;
+  final VoidCallback onTap;
+  final bool gold;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadii.lg);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: ConciergePalette.quiet(context),
+      ),
+      child: Material(
+        color: ConciergePalette.surface(context),
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(color: ConciergePalette.line(context)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (gold) Container(height: 2, color: ConciergePalette.gold(context)),
+                Expanded(child: child),
+              ],
             ),
           ),
         ),
@@ -389,11 +384,10 @@ class _OfferSlide extends StatelessWidget {
   }
 }
 
-class _FallbackSlide extends StatelessWidget {
-  const _FallbackSlide({
+class _QuietSlide extends StatelessWidget {
+  const _QuietSlide({
     required this.title,
     required this.subtitle,
-    required this.gradientColors,
     required this.icon,
     required this.onTap,
     required this.cta,
@@ -401,81 +395,46 @@ class _FallbackSlide extends StatelessWidget {
 
   final String title;
   final String subtitle;
-  final List<Color> gradientColors;
   final IconData icon;
   final VoidCallback onTap;
   final String cta;
 
   @override
   Widget build(BuildContext context) {
-    return PhysicalModel(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadii.lg),
-      elevation: 8,
-      shadowColor: gradientColors.first.withValues(alpha: 0.26),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-          child: Ink(
+    final ink = ConciergePalette.ink(context);
+    final muted = ConciergePalette.muted(context);
+    final emerald = ConciergePalette.emerald(context);
+    return _FillCard(
+      onTap: onTap,
+      gold: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadii.lg),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: gradientColors,
-              ),
+              color: ConciergePalette.emeraldWash(context),
+              borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              child: Row(
-                children: [
-                  Icon(
-                    icon,
-                    size: 44,
-                    color: Colors.white.withValues(alpha: 0.95),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 13,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    cta,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      decoration: TextDecoration.underline,
-                      decorationColor: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
+            child: Icon(icon, size: 20, color: emerald),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: ConciergeType.title(ink)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: ConciergeType.caption(muted)),
+              ],
             ),
           ),
+          const SizedBox(width: 8),
+          Text(cta, style: ConciergeType.caption(emerald).copyWith(fontWeight: FontWeight.w600)),
+        ],
         ),
       ),
     );

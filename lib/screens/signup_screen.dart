@@ -4,7 +4,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../theme/app_tokens.dart';
+import '../theme/concierge_theme.dart';
 import '../ui/auth_form_styles.dart';
 import '../ui/mobadra_motion.dart';
 import '../ui/mobadra_surface.dart';
@@ -93,7 +93,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           'Create Account',
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: AppColors.primary,
+                                color: EditorialPalette.headline,
                                 fontWeight: FontWeight.w800,
                               ),
                         ).mobadraFadeSlide(),
@@ -102,7 +102,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           'Please enter your clinical credentials to begin.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: EditorialPalette.muted,
                             fontSize: 14,
                             height: 1.35,
                           ),
@@ -115,7 +115,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               value == null || value.isEmpty ? 'Please enter your name' : null,
                           decoration: authFilledDecoration(
                             hintText: 'Dr. Sarah Al-Sayed',
-                            suffixIcon: Icon(Icons.person_outline, color: Colors.grey.shade600),
+                            suffixIcon: Icon(Icons.person_outline, color: EditorialPalette.muted),
                           ),
                         ).mobadraFadeSlide(delayMs: 50),
                         const SizedBox(height: 16),
@@ -127,7 +127,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               value == null || value.isEmpty ? 'Please enter phone number' : null,
                           decoration: authFilledDecoration(
                             hintText: '+971 -- --- ----',
-                            suffixIcon: Icon(Icons.phone_outlined, color: Colors.grey.shade600),
+                            suffixIcon: Icon(Icons.phone_outlined, color: EditorialPalette.muted),
                           ),
                         ).mobadraFadeSlide(delayMs: 65),
                         const SizedBox(height: 16),
@@ -139,7 +139,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               value == null || value.isEmpty ? 'Please enter National ID' : null,
                           decoration: authFilledDecoration(
                             hintText: '784-XXXX-XXXXXXX-X',
-                            suffixIcon: Icon(Icons.perm_identity_outlined, color: Colors.grey.shade600),
+                            suffixIcon: Icon(Icons.perm_identity_outlined, color: EditorialPalette.muted),
                           ),
                         ).mobadraFadeSlide(delayMs: 80),
                         const SizedBox(height: 16),
@@ -157,7 +157,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                color: Colors.grey.shade600,
+                                color: EditorialPalette.muted,
                               ),
                               onPressed: () {
                                 setState(() => _obscurePassword = !_obscurePassword);
@@ -183,7 +183,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.45),
+                                color: EditorialPalette.headline.withValues(alpha: 0.45),
                                 blurRadius: 18,
                                 offset: const Offset(0, 8),
                               ),
@@ -194,9 +194,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             height: 52,
                             child: FilledButton(
                               style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                                backgroundColor: EditorialPalette.ivory,
+                                foregroundColor: EditorialPalette.ivoryInk,
+                                disabledBackgroundColor: EditorialPalette.headline.withValues(alpha: 0.5),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
@@ -230,7 +230,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         Text(
                           'Already a member?',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                          style: TextStyle(color: EditorialPalette.muted, fontSize: 14),
                         ),
                         TextButton(
                           onPressed: () {
@@ -242,7 +242,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           child: const Text(
                             'Sign In to Mobadra',
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: EditorialPalette.headline,
                               fontWeight: FontWeight.w800,
                               fontSize: 15,
                             ),

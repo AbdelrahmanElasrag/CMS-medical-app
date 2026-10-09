@@ -6,6 +6,7 @@ import 'family_provider.dart';
 import 'package:cms/services/auth_service.dart';
 import 'package:cms/services/api_service.dart';
 import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 import 'package:cms/ui/booking_auth_prompt.dart';
 import 'package:cms/ui/mobadra_ui.dart';
 
@@ -48,15 +49,15 @@ class _ServiceScreenState extends State<ServiceScreen> {
       hintText: hint,
       prefixIcon: prefix,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: EditorialPalette.card,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadii.md),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: const BorderSide(color: Color(0xFF2E2E30)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadii.md),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: const BorderSide(color: EditorialPalette.ivory, width: 1.5),
       ),
     );
   }
@@ -257,7 +258,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
     final scheme = ShadTheme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.neutralSurface,
+      backgroundColor: EditorialPalette.canvas,
       appBar: MobadraAppBar(
         title: Row(
           children: [
@@ -272,9 +273,9 @@ class _ServiceScreenState extends State<ServiceScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: AppColors.primary, strokeWidth: 3),
+                  CircularProgressIndicator(color: EditorialPalette.headline, strokeWidth: 3),
                   const SizedBox(height: 16),
-                  Text('Loading hospitals…', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                  const Text('Loading hospitals…', style: TextStyle(color: EditorialPalette.muted, fontWeight: FontWeight.w500)),
                 ],
               ),
             )
@@ -287,14 +288,44 @@ class _ServiceScreenState extends State<ServiceScreen> {
                       children: [
                         Icon(Icons.error_outline_rounded, size: 56, color: Colors.red.shade300),
                         const SizedBox(height: 16),
-                        Text(_loadError!, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade800, height: 1.35)),
+                        Text(_loadError!, textAlign: TextAlign.center, style: const TextStyle(color: EditorialPalette.muted, height: 1.35)),
                         const SizedBox(height: 20),
                         ShadButton(
                           onPressed: _loadMeta,
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.refresh_rounded, size: 20, color: Colors.white),
+                              Icon(Icons.refresh_rounded, size: 20, color: EditorialPalette.ivoryInk),
+                              SizedBox(width: 8),
+                              Text('Retry'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _hospitals.isEmpty || _specialities.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.local_hospital_outlined, size: 56, color: EditorialPalette.headline),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No hospitals or specialities are set up in the clinic system yet. Add them in the employee website, then retry.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: EditorialPalette.muted, height: 1.35),
+                        ),
+                        const SizedBox(height: 20),
+                        ShadButton(
+                          onPressed: _loadMeta,
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.refresh_rounded, size: 20, color: EditorialPalette.ivoryInk),
                               SizedBox(width: 8),
                               Text('Retry'),
                             ],
@@ -322,28 +353,28 @@ class _ServiceScreenState extends State<ServiceScreen> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                AppColors.primary.withValues(alpha: 0.12),
+                                EditorialPalette.headline.withValues(alpha: 0.12),
                                 AppColors.secondary.withValues(alpha: 0.15),
                               ],
                             ),
-                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                            border: Border.all(color: EditorialPalette.headline.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary,
+                                  color: EditorialPalette.headline,
                                   borderRadius: BorderRadius.circular(14),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.35),
+                                      color: EditorialPalette.headline.withValues(alpha: 0.35),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
                                   ],
                                 ),
-                                child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 26),
+                                child: const Icon(Icons.favorite_rounded, color: EditorialPalette.ivoryInk, size: 26),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -354,7 +385,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                                       'Book with Creative Mobadra',
                                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                             fontWeight: FontWeight.w900,
-                                            color: AppColors.primary,
+                                            color: EditorialPalette.headline,
                                           ),
                                     ),
                                     const SizedBox(height: 4),
@@ -373,12 +404,12 @@ class _ServiceScreenState extends State<ServiceScreen> {
                         const SizedBox(height: 10),
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: EditorialPalette.card,
                             borderRadius: BorderRadius.circular(AppRadii.lg),
                             border: Border.all(color: AppColors.secondary.withValues(alpha: 0.25)),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.06),
+                                color: EditorialPalette.headline.withValues(alpha: 0.06),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -391,7 +422,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                             ),
-                            icon: Icon(Icons.expand_more_rounded, color: AppColors.primary),
+                            icon: Icon(Icons.expand_more_rounded, color: EditorialPalette.headline),
                             items: [
                               const DropdownMenuItem(value: '__self', child: Text('Myself')),
                               ...familyProvider.familyMembers.map(
@@ -399,7 +430,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                                   value: m.id,
                                   child: Row(
                                     children: [
-                                      Icon(_relationshipIcon(m.relationship), color: AppColors.primary, size: 20),
+                                      Icon(_relationshipIcon(m.relationship), color: EditorialPalette.headline, size: 20),
                                       const SizedBox(width: 8),
                                       Expanded(child: Text('${m.relationship}: ${m.firstName}')),
                                     ],
@@ -424,13 +455,13 @@ class _ServiceScreenState extends State<ServiceScreen> {
                           ),
                         ),
                         const SizedBox(height: 22),
-                        _SectionHeader(icon: Icons.local_hospital_rounded, title: 'Visit details', accent: AppColors.primary),
+                        _SectionHeader(icon: Icons.local_hospital_rounded, title: 'Visit details', accent: EditorialPalette.headline),
                         const SizedBox(height: 10),
                         DropdownButtonFormField<String>(
                           value: _hospitalId,
                           decoration: _fieldDeco(
                             'Hospital',
-                            prefix: const Icon(Icons.apartment_rounded, color: AppColors.primary),
+                            prefix: const Icon(Icons.apartment_rounded, color: EditorialPalette.headline),
                           ),
                           items: _hospitals
                               .map(
@@ -448,7 +479,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                           value: _specialityId,
                           decoration: _fieldDeco(
                             'Speciality',
-                            prefix: const Icon(Icons.medical_services_outlined, color: AppColors.primary),
+                            prefix: const Icon(Icons.medical_services_outlined, color: EditorialPalette.headline),
                           ),
                           items: _specialities
                               .map(
@@ -466,7 +497,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                               builder: (context, constraints) {
                                 final compact = constraints.maxWidth < 560;
                                 final dateField = Material(
-                                  color: Colors.white,
+                                  color: EditorialPalette.card,
                                   borderRadius: BorderRadius.circular(AppRadii.md),
                                   child: InkWell(
                                     onTap: _pickDate,
@@ -474,7 +505,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                                     child: InputDecorator(
                                       decoration: _fieldDeco(
                                         'Preferred date',
-                                        prefix: const Icon(Icons.calendar_month_rounded, color: AppColors.primary),
+                                        prefix: const Icon(Icons.calendar_month_rounded, color: EditorialPalette.headline),
                                       ),
                                       child: Row(
                                         children: [
@@ -485,7 +516,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                                                   : _formatDate(_preferredDate!),
                                               style: TextStyle(
                                                 fontSize: 16,
-                                                color: _preferredDate == null ? Colors.grey.shade500 : Colors.grey.shade900,
+                                                color: _preferredDate == null ? EditorialPalette.navMuted : EditorialPalette.headline,
                                                 fontWeight: _preferredDate == null ? FontWeight.w500 : FontWeight.w600,
                                               ),
                                             ),
@@ -498,7 +529,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                                 );
 
                                 final timeField = Material(
-                                  color: Colors.white,
+                                  color: EditorialPalette.card,
                                   borderRadius: BorderRadius.circular(AppRadii.md),
                                   child: InkWell(
                                     onTap: _pickTime,
@@ -506,7 +537,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                                     child: InputDecorator(
                                       decoration: _fieldDeco(
                                         'Preferred time',
-                                        prefix: const Icon(Icons.access_time_rounded, color: AppColors.primary),
+                                        prefix: const Icon(Icons.access_time_rounded, color: EditorialPalette.headline),
                                       ),
                                       child: Row(
                                         children: [
@@ -517,7 +548,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                                                   : _formatTime(_preferredTime!),
                                               style: TextStyle(
                                                 fontSize: 16,
-                                                color: _preferredTime == null ? Colors.grey.shade500 : Colors.grey.shade900,
+                                                color: _preferredTime == null ? EditorialPalette.navMuted : EditorialPalette.headline,
                                                 fontWeight: _preferredTime == null ? FontWeight.w500 : FontWeight.w600,
                                               ),
                                             ),
@@ -553,7 +584,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                         const SizedBox(height: 10),
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: EditorialPalette.card,
                             borderRadius: BorderRadius.circular(AppRadii.lg),
                             border: Border.all(color: AppColors.tertiary.withValues(alpha: 0.35)),
                             boxShadow: [
@@ -606,7 +637,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                           ),
                         ),
                         const SizedBox(height: 22),
-                        _SectionHeader(icon: Icons.edit_note_rounded, title: 'Extras', accent: AppColors.primary),
+                        _SectionHeader(icon: Icons.edit_note_rounded, title: 'Extras', accent: EditorialPalette.headline),
                         const SizedBox(height: 10),
                         TextFormField(
                           controller: _referralController,
@@ -625,7 +656,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                             hint: 'Anything else we should know',
                             prefix: const Padding(
                               padding: EdgeInsets.only(bottom: 40),
-                              child: Icon(Icons.notes_rounded, color: AppColors.primary),
+                              child: Icon(Icons.notes_rounded, color: EditorialPalette.headline),
                             ),
                           ),
                         ),
@@ -635,7 +666,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.35),
+                                color: EditorialPalette.headline.withValues(alpha: 0.35),
                                 blurRadius: 16,
                                 offset: const Offset(0, 8),
                               ),
@@ -646,9 +677,9 @@ class _ServiceScreenState extends State<ServiceScreen> {
                             height: 52,
                             child: FilledButton(
                               style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                                backgroundColor: EditorialPalette.ivory,
+                                foregroundColor: EditorialPalette.ivoryInk,
+                                disabledBackgroundColor: EditorialPalette.headline.withValues(alpha: 0.5),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 elevation: 0,
                               ),
@@ -669,7 +700,7 @@ class _ServiceScreenState extends State<ServiceScreen> {
                                   ? const SizedBox(
                                       width: 24,
                                       height: 24,
-                                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                                      child: CircularProgressIndicator(strokeWidth: 2.5, color: EditorialPalette.ivoryInk),
                                     )
                                   : const Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
@@ -723,7 +754,7 @@ class _SectionHeader extends StatelessWidget {
           title,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: AppColors.primary,
+                color: EditorialPalette.headline,
                 letterSpacing: 0.2,
               ),
         ),

@@ -69,9 +69,9 @@ class VipMembershipCard extends StatelessWidget {
                       end: Alignment.bottomRight,
                       stops: [0.0, 0.55, 1.0],
                       colors: [
-                        Color(0xFFFFF2C6),
-                        Color(0xFFE0B358),
-                        Color(0xFFB8842E),
+                        Color(0xFFF7F4EF),
+                        Color(0xFFE4D5C4),
+                        Color(0xFFC4B09A),
                       ],
                     ),
                     // No border stroke — seamless edges.

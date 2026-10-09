@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 import '../ui/mobadra_motion.dart';
 import '../widgets/custom_scaffold.dart';
 import 'signin_screen.dart';
@@ -192,7 +192,7 @@ class _WelcomePrimaryButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(WelcomeScreen._pillRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.45),
+            color: Colors.black.withValues(alpha: 0.28),
             blurRadius: 22,
             spreadRadius: -2,
             offset: const Offset(0, 8),
@@ -205,20 +205,20 @@ class _WelcomePrimaryButton extends StatelessWidget {
         ],
       ),
       child: Material(
-        color: Colors.white,
+        color: EditorialPalette.ivory,
         borderRadius: BorderRadius.circular(WelcomeScreen._pillRadius),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onPressed,
-          splashColor: AppColors.primary.withValues(alpha: 0.12),
-          highlightColor: AppColors.primary.withValues(alpha: 0.06),
+          splashColor: EditorialPalette.ivoryInk.withValues(alpha: 0.08),
+          highlightColor: EditorialPalette.ivoryInk.withValues(alpha: 0.04),
           child: SizedBox(
             height: 52,
             child: Center(
               child: Text(
                 label,
                 style: const TextStyle(
-                  color: AppColors.primary,
+                  color: EditorialPalette.ivoryInk,
                   fontWeight: FontWeight.w800,
                   fontSize: 15.5,
                   letterSpacing: 0.15,

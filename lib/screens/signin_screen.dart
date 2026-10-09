@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../theme/app_tokens.dart';
+import '../theme/concierge_theme.dart';
 import '../ui/auth_form_styles.dart';
 import '../ui/mobadra_motion.dart';
 import '../ui/mobadra_surface.dart';
@@ -53,7 +53,7 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  static const _buttonBlue = Color(0xFF003D7A);
+  static const _buttonBlue = EditorialPalette.ivory;
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +87,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           'Please enter your credentials to continue.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: EditorialPalette.muted,
                             fontSize: 14,
                             height: 1.35,
                           ),
@@ -118,7 +118,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.grey.shade800,
+                                color: EditorialPalette.headline,
                               ),
                             ),
                             const Spacer(),
@@ -139,7 +139,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
-                                  color: AppColors.primary,
+                                  color: EditorialPalette.headline,
                                 ),
                               ),
                             ),
@@ -161,7 +161,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                color: Colors.grey.shade600,
+                                color: EditorialPalette.muted,
                               ),
                               onPressed: () {
                                 setState(() => _obscurePassword = !_obscurePassword);
@@ -187,7 +187,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             child: FilledButton(
                               style: FilledButton.styleFrom(
                                 backgroundColor: _buttonBlue,
-                                foregroundColor: Colors.white,
+                                foregroundColor: EditorialPalette.ivoryInk,
                                 disabledBackgroundColor: _buttonBlue.withValues(alpha: 0.5),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
@@ -201,7 +201,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                       width: 22,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: Colors.white,
+                                        color: EditorialPalette.ivoryInk,
                                       ),
                                     )
                                   : const Text(
@@ -214,27 +214,27 @@ class _SignInScreenState extends State<SignInScreen> {
                         const SizedBox(height: 22),
                         Row(
                           children: [
-                            Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                            Expanded(child: Divider(color: const Color(0xFF2E2E30), thickness: 1)),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: Text(
                                 'OR',
                                 style: TextStyle(
-                                  color: Colors.grey.shade500,
+                                  color: EditorialPalette.navMuted,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.2,
                                 ),
                               ),
                             ),
-                            Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+                            Expanded(child: Divider(color: const Color(0xFF2E2E30), thickness: 1)),
                           ],
                         ),
                         const SizedBox(height: 20),
                         Text(
                           'New to Mobadra?',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                          style: TextStyle(color: EditorialPalette.muted, fontSize: 14),
                         ),
                         TextButton(
                           onPressed: () {
@@ -246,7 +246,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           child: Text(
                             'Create Account',
                             style: TextStyle(
-                              color: AppColors.tertiary,
+                              color: EditorialPalette.ivory,
                               fontWeight: FontWeight.w800,
                               fontSize: 15,
                             ),

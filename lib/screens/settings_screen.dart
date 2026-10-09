@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cms/services/auth_service.dart';
-import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 import 'package:cms/ui/mobadra_ui.dart';
 
 const String _supportEmail = 'info@creativemultisolutions.com';
@@ -145,29 +145,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ListTile(leading: const Icon(Icons.share, color: AppColors.primary), title: const Text('Share App'), onTap: _shareApp),
+          ListTile(leading: const Icon(Icons.share, color: EditorialPalette.headline), title: const Text('Share App'), onTap: _shareApp),
           const Divider(),
-          ListTile(leading: const Icon(Icons.support_agent, color: AppColors.primary), title: const Text('Contact Support'), onTap: _contactSupport),
+          ListTile(leading: const Icon(Icons.support_agent, color: EditorialPalette.headline), title: const Text('Contact Support'), onTap: _contactSupport),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
+            leading: const Icon(Icons.privacy_tip_outlined, color: EditorialPalette.headline),
             title: const Text('Privacy Policy'),
             onTap: () => _openLegalUrl(_privacyPolicyUrl),
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.gavel_outlined, color: AppColors.primary),
+            leading: const Icon(Icons.gavel_outlined, color: EditorialPalette.headline),
             title: const Text('Terms of Service'),
             onTap: () => _openLegalUrl(_termsUrl),
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.shield_outlined, color: AppColors.primary),
+            leading: const Icon(Icons.shield_outlined, color: EditorialPalette.headline),
             title: const Text('Data Collection Notice'),
             onTap: () => _openLegalUrl(_dataNoticeUrl),
           ),
           const Divider(),
-          ListTile(leading: const Icon(Icons.info_outline, color: AppColors.primary), title: const Text('About App'), onTap: _aboutApp),
+          ListTile(leading: const Icon(Icons.info_outline, color: EditorialPalette.headline), title: const Text('About App'), onTap: _aboutApp),
           if (auth.isLoggedIn) ...[
             const Divider(),
             ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: const Text('Delete Account'), onTap: _showDeleteDialog),

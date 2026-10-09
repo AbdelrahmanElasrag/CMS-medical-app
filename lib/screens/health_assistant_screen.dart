@@ -12,6 +12,7 @@ import 'package:cms/services/health_assessment_controller.dart';
 import 'package:cms/services/locale_controller.dart';
 import 'package:cms/services/triage_from_analysis.dart';
 import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 import 'package:cms/ui/mobadra_ui.dart';
 
 /// Symptom triage (rule-based chat) + static FAQ. Prefer [createRoute] so [HealthAssessmentController] is provided.
@@ -48,7 +49,7 @@ class _HealthAssistantScreenState extends State<HealthAssistantScreen> {
     return Theme(
       data: baseTheme.copyWith(textTheme: textTheme),
       child: Scaffold(
-        backgroundColor: AppColors.neutralSurface,
+        backgroundColor: EditorialPalette.canvas,
         appBar: MobadraAppBar(
           title: Text(l10n.healthAssistantTitle),
           actions: [
@@ -126,7 +127,7 @@ class _FaqPanel extends StatelessWidget {
                 children: [
                   Align(
                     alignment: AlignmentDirectional.centerStart,
-                    child: Text(e.answer, style: TextStyle(color: Colors.grey[800], height: 1.45)),
+                    child: Text(e.answer, style: TextStyle(color: EditorialPalette.muted, height: 1.45)),
                   ),
                 ],
               ),
@@ -217,7 +218,7 @@ class _DisclaimerBody extends StatelessWidget {
           Text(
             l10n.disclaimerBody,
             textAlign: TextAlign.start,
-            style: TextStyle(color: Colors.grey[800], height: 1.45),
+            style: TextStyle(color: EditorialPalette.muted, height: 1.45),
           ),
           const SizedBox(height: 24),
           ShadButton(
@@ -490,9 +491,9 @@ class _AdaUserAnswer extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.88),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: EditorialPalette.card,
             borderRadius: BorderRadius.circular(AppRadii.pill),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.55), width: 1.2),
+            border: Border.all(color: EditorialPalette.headline.withValues(alpha: 0.55), width: 1.2),
           ),
           child: Padding(
             padding: const EdgeInsetsDirectional.symmetric(horizontal: 16, vertical: 10),
@@ -500,7 +501,7 @@ class _AdaUserAnswer extends StatelessWidget {
               text,
               textAlign: TextAlign.end,
               style: const TextStyle(
-                color: AppColors.primary,
+                color: EditorialPalette.headline,
                 fontWeight: FontWeight.w600,
                 height: 1.3,
                 fontSize: 15,
@@ -536,9 +537,9 @@ class _AdaOutlineChoiceButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadii.pill),
         child: Ink(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: EditorialPalette.card,
             borderRadius: BorderRadius.circular(AppRadii.pill),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.65), width: 1.25),
+            border: Border.all(color: EditorialPalette.headline.withValues(alpha: 0.65), width: 1.25),
           ),
           child: Padding(
             padding: const EdgeInsetsDirectional.symmetric(horizontal: 20, vertical: 12),
@@ -546,7 +547,7 @@ class _AdaOutlineChoiceButton extends StatelessWidget {
               label,
               textAlign: TextAlign.start,
               style: TextStyle(
-                color: AppColors.primary.withValues(alpha: enabled ? 1 : 0.45),
+                color: EditorialPalette.headline.withValues(alpha: enabled ? 1 : 0.45),
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
               ),
@@ -659,7 +660,7 @@ class _ResultsBody extends StatelessWidget {
                   Text(
                     l10n.notADiagnosisBanner,
                     textAlign: TextAlign.start,
-                    style: TextStyle(color: Colors.grey[800], height: 1.4),
+                    style: TextStyle(color: EditorialPalette.muted, height: 1.4),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -667,14 +668,14 @@ class _ResultsBody extends StatelessWidget {
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: Colors.grey[900],
+                          color: EditorialPalette.headline,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     l10n.whyNoCauseBody,
                     textAlign: TextAlign.start,
-                    style: TextStyle(color: Colors.grey[800], height: 1.45),
+                    style: TextStyle(color: EditorialPalette.muted, height: 1.45),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -682,20 +683,20 @@ class _ResultsBody extends StatelessWidget {
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: Colors.grey[900],
+                          color: EditorialPalette.headline,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _visitGuidance(l10n, t.bucket),
                     textAlign: TextAlign.start,
-                    style: TextStyle(color: Colors.grey[800], height: 1.45),
+                    style: TextStyle(color: EditorialPalette.muted, height: 1.45),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     l10n.assistantLegalFooter,
                     textAlign: TextAlign.start,
-                    style: TextStyle(color: Colors.grey[700], height: 1.4, fontSize: 13),
+                    style: TextStyle(color: EditorialPalette.muted, height: 1.4, fontSize: 13),
                   ),
                   if (controller.errorMessage != null && controller.errorMessage!.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -710,7 +711,7 @@ class _ResultsBody extends StatelessWidget {
                     Text(
                       t.careSummary!.trim(),
                       textAlign: TextAlign.start,
-                      style: TextStyle(color: Colors.grey[900], height: 1.45),
+                      style: TextStyle(color: EditorialPalette.headline, height: 1.45),
                     ),
                   ],
                   if (t.apiTriageHint != null) ...[
@@ -718,7 +719,7 @@ class _ResultsBody extends StatelessWidget {
                     Text(
                       l10n.additionalNotes(t.apiTriageHint!),
                       textAlign: TextAlign.start,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                      style: TextStyle(fontSize: 13, color: EditorialPalette.muted),
                     ),
                   ],
                 ],
@@ -786,12 +787,12 @@ class _ErrorBody extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.cloud_off_outlined, size: 56, color: Colors.grey[500]),
+          Icon(Icons.cloud_off_outlined, size: 56, color: EditorialPalette.navMuted),
           const SizedBox(height: 16),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[800]),
+            style: TextStyle(color: EditorialPalette.muted),
           ),
           const SizedBox(height: 24),
           ShadButton(

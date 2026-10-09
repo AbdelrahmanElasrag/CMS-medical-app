@@ -56,13 +56,13 @@ class MyApp extends StatelessWidget {
       builder: (context, themeProvider, localeController, _) {
         return ShadApp.custom(
           themeMode: themeProvider.mode,
-          theme: MobadraShadThemes.light(),
-          darkTheme: MobadraShadThemes.dark(),
+          theme: MobadraShadThemes.editorial(),
+          darkTheme: MobadraShadThemes.editorial(),
           appBuilder: (context) => MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Creative Mobadra',
-            theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
+            theme: AppTheme.editorial(),
+            darkTheme: AppTheme.editorial(),
             themeMode: themeProvider.mode,
             locale: localeController.locale,
             localizationsDelegates: const [

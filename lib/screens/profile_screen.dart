@@ -6,6 +6,7 @@ import 'family_provider.dart';
 import 'package:cms/services/auth_service.dart';
 import 'package:cms/services/api_service.dart';
 import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 import 'package:cms/ui/mobadra_ui.dart';
 import 'package:cms/ui/vip_membership_card.dart';
 import 'booking_history_screen.dart';
@@ -169,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Successfully logged out'),
-          backgroundColor: AppColors.primary,
+          backgroundColor: EditorialPalette.cardInner,
         ),
       );
 
@@ -193,6 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.watch<AuthService>();
     if (!auth.isLoggedIn) {
       return Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: const MobadraAppBar(title: Text('My Profile')),
         body: Padding(
           padding: const EdgeInsets.all(24),
@@ -203,8 +205,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Icon(
                 Icons.person_outline,
                 size: 64,
-                color: AppColors.primary.withValues(alpha: 0.65),
-              ),
+                color: EditorialPalette.headline.withValues(alpha: 0.8),
+              ).mobadraPop(),
               const SizedBox(height: 20),
               Text(
                 'Sign in to unlock your profile',
@@ -218,11 +220,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'Book visits, view your QR, track points, and manage family members once you have an account.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: EditorialPalette.muted,
                   height: 1.4,
                   fontSize: 15,
                 ),
-              ),
+              ).mobadraFadeSlide(delayMs: 80),
               const SizedBox(height: 28),
               ShadButton(
                 onPressed: () {
@@ -246,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                 },
                 child: const Text('Sign in'),
-              ),
+              ).mobadraFadeSlide(delayMs: 140),
             ],
           ),
         ),
@@ -254,23 +256,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: const MobadraAppBar(title: Text('My Profile')),
       body: SingleChildScrollView(
         child: Column(
           children: [
             // Profile Header
             Container(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+                color: EditorialPalette.card,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFF2E2E30)),
               ),
               margin: EdgeInsets.all(16),
               child: Column(
@@ -283,7 +280,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             CircleAvatar(
                               radius: 50,
-                              backgroundColor: AppColors.primaryContainer,
+                              backgroundColor: EditorialPalette.portrait,
                               backgroundImage:
                                   _profileImage != null
                                       ? FileImage(_profileImage!)
@@ -297,7 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ? Icon(
                                         Icons.person,
                                         size: 50,
-                                        color: AppColors.primary,
+                                        color: EditorialPalette.headline,
                                       )
                                       : null,
                             ),
@@ -324,12 +321,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: Container(
                                   padding: EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primary,
+                                    color: EditorialPalette.ivory,
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
                                     Icons.camera_alt,
-                                    color: Colors.white,
+                                    color: EditorialPalette.ivoryInk,
                                     size: 20,
                                   ),
                                 ),
@@ -361,7 +358,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-            ),
+            ).mobadraFadeSlide(),
 
             // Family Members Section
             Padding(
@@ -377,7 +374,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () => _showAddFamilyMemberDialog(context),
                     child: Text(
                       'Add New',
-                      style: TextStyle(color: AppColors.primary),
+                      style: const TextStyle(color: EditorialPalette.headline),
                     ),
                   ),
                 ],
@@ -397,7 +394,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: EdgeInsets.all(16),
                         child: Text(
                           'No family members added yet',
-                          style: TextStyle(color: Colors.grey),
+                          style: const TextStyle(color: EditorialPalette.muted),
                         ),
                       );
                     }
@@ -427,7 +424,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               },
-            ),
+            ).mobadraFadeSlide(delayMs: 40),
             _buildProfileSection(
               title: 'Wellness',
               icon: Icons.favorite_outline,
@@ -439,7 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               },
-            ),
+            ).mobadraFadeSlide(delayMs: 90),
             _buildProfileSection(
               title: 'Settings',
               icon: Icons.settings,
@@ -449,7 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   MaterialPageRoute(builder: (context) => SettingsScreen()),
                 );
               },
-            ),
+            ).mobadraFadeSlide(delayMs: 140),
             _buildProfileSection(
               title: 'Help & Support',
               icon: Icons.help_outline,
@@ -459,8 +456,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   MaterialPageRoute(builder: (context) => HelpCenterScreen()),
                 );
               },
-            ),
-            SizedBox(height: 20),
+            ).mobadraFadeSlide(delayMs: 190),
+            const SizedBox(height: 20),
 
             // Logout button
             // In your ProfileScreen's build method:
@@ -469,8 +466,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: ElevatedButton(
                 onPressed: () => _showLogoutConfirmation(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[50],
-                  foregroundColor: Colors.red,
+                  backgroundColor: const Color(0xFF2A1616),
+                  foregroundColor: const Color(0xFFFFB4AB),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -478,7 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: const Text('Log Out'),
               ),
-            ),
+            ).mobadraFadeSlide(delayMs: 230),
             SizedBox(height: 20),
           ],
         ),
@@ -494,14 +491,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: EditorialPalette.card,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1)),
         ],
       ),
       child: ListTile(
-        leading: Icon(icon, color: AppColors.primary),
+        leading: Icon(icon, color: EditorialPalette.headline),
         title: Text(title),
         trailing: Icon(Icons.chevron_right),
         onTap: onTap,
@@ -516,13 +513,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ) {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      color: isSelected ? AppColors.primaryContainer : Colors.white,
+      color: isSelected ? EditorialPalette.cardInner : EditorialPalette.card,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+          backgroundColor: EditorialPalette.portrait,
           child: Icon(
             _getRelationshipIcon(member.relationship),
-            color: AppColors.primary,
+            color: EditorialPalette.headline,
           ),
         ),
         title: Text('${member.firstName} ${member.lastName}'),
@@ -531,12 +528,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.qr_code, color: AppColors.primary),
+              icon: const Icon(Icons.qr_code, color: EditorialPalette.headline),
               onPressed: () => _showFamilyMemberQRCodeDialog(context, member),
               tooltip: 'Show QR Code',
             ),
             IconButton(
-              icon: Icon(Icons.edit, color: Colors.grey),
+              icon: const Icon(Icons.edit, color: EditorialPalette.muted),
               onPressed: () => _showEditFamilyMemberDialog(context, member),
             ),
             IconButton(
@@ -674,9 +671,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: EditorialPalette.ivory,
                 ),
-                child: Text('Save', style: TextStyle(color: Colors.white)),
+                child: const Text('Save', style: TextStyle(color: EditorialPalette.ivoryInk)),
               ),
             ],
           ),
@@ -787,7 +784,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
+                      backgroundColor: EditorialPalette.ivory,
                     ),
                     child: Text('Save'),
                   ),
@@ -865,8 +862,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: TextButton(
                     onPressed: () => Navigator.pop(sheetContext),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.black.withValues(alpha: 0.25),
+                      foregroundColor: EditorialPalette.headline,
+                      backgroundColor: EditorialPalette.card,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadii.lg),

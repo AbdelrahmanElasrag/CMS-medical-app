@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 
 import 'package:cms/services/auth_service.dart';
 import 'package:cms/ui/booking_auth_prompt.dart';
+import 'package:cms/screens/concierge_screen.dart';
 import 'package:cms/screens/home_screen.dart';
-import 'package:cms/screens/offers_screen.dart';
 import 'package:cms/screens/profile_screen.dart';
 import 'package:cms/screens/service_screen.dart';
 import 'package:cms/screens/visits_screen.dart';
-import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
+import 'package:cms/ui/concierge/concierge_nav_bar.dart';
+import 'package:cms/ui/lumen_field.dart';
 import 'package:cms/ui/mobadra_ui.dart';
 
 class MainShell extends StatefulWidget {
@@ -74,13 +76,6 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = ShadTheme.of(context).colorScheme;
-    final materialCs = Theme.of(context).colorScheme;
-    final headerBorder = materialCs.outline.withValues(alpha: 0.18);
-    final barBg = Theme.of(context).brightness == Brightness.dark
-        ? materialCs.surfaceContainerHigh
-        : AppColors.primaryContainer;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -88,184 +83,40 @@ class _MainShellState extends State<MainShell> {
         await _confirmExit(context);
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _index,
+        backgroundColor: EditorialPalette.canvas,
+        body: Stack(
+          fit: StackFit.expand,
           children: [
-            MobadraHomeTab(
-              username: widget.username,
-              points: widget.points,
-              profileImageUrl: widget.profileImageUrl,
-              onOpenProfile: () => setState(() => _index = 3),
-              onViewAllOffers: () => setState(() => _index = 1),
-            ),
-            const OffersScreen(),
-            const VisitsScreen(),
-            ProfileScreen(
-              username: widget.username,
-              points: widget.points,
-            ),
-          ],
-        ),
-        floatingActionButton: SizedBox(
-          width: 72,
-          height: 72,
-          child: FloatingActionButton(
-            onPressed: () => _openBooking(context),
-            backgroundColor: Colors.white,
-            foregroundColor: scheme.primary,
-            elevation: 4,
-            shape: CircleBorder(
-              side: BorderSide(
-                color: scheme.primary.withValues(alpha: 0.22),
-                width: 1,
-              ),
-            ),
-            child: ClipOval(
-              child: SizedBox(
-                width: 60,
-                height: 60,
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Image.asset(
-                    'assets/booknow.gif',
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                  ),
+            const LumenField(),
+            MobadraTabHost(
+              index: _index,
+              children: [
+                MobadraHomeTab(
+                  username: widget.username,
+                  profileImageUrl: widget.profileImageUrl,
+                  heroPlaying: _index == 0,
+                  onOpenProfile: () => setState(() => _index = 3),
+                  onBook: () => _openBooking(context),
+                  onOpenVisits: () => setState(() => _index = 1),
+                  onOpenConcierge: () => setState(() => _index = 2),
                 ),
-              ),
-            ),
-          ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Container(
-            decoration: BoxDecoration(
-              color: barBg,
-              border: Border(top: BorderSide(color: headerBorder, width: 1)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
+                const VisitsScreen(),
+                ConciergeScreen(
+                  username: widget.username,
+                  points: widget.points,
+                  onOpenProfile: () => setState(() => _index = 3),
+                ),
+                ProfileScreen(
+                  username: widget.username,
+                  points: widget.points,
                 ),
               ],
             ),
-            child: BottomAppBar(
-              padding: EdgeInsets.zero,
-              height: 50,
-              elevation: 0,
-              notchMargin: 10,
-              color: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              shape: const CircularNotchedRectangle(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _CompactNavItem(
-                            icon: Icons.home_rounded,
-                            label: 'Home',
-                            selected: _index == 0,
-                            primary: scheme.primary,
-                            muted: scheme.mutedForeground,
-                            onTap: () => setState(() => _index = 0),
-                          ),
-                          _CompactNavItem(
-                            icon: Icons.local_offer_outlined,
-                            label: 'Offers',
-                            selected: _index == 1,
-                            primary: scheme.primary,
-                            muted: scheme.mutedForeground,
-                            onTap: () => setState(() => _index = 1),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 108),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _CompactNavItem(
-                            icon: Icons.calendar_month_outlined,
-                            label: 'Visits',
-                            selected: _index == 2,
-                            primary: scheme.primary,
-                            muted: scheme.mutedForeground,
-                            onTap: () => setState(() => _index = 2),
-                          ),
-                          _CompactNavItem(
-                            icon: Icons.person_outline,
-                            label: 'Profile',
-                            selected: _index == 3,
-                            primary: scheme.primary,
-                            muted: scheme.mutedForeground,
-                            onTap: () => setState(() => _index = 3),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class _CompactNavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final Color primary;
-  final Color muted;
-  final VoidCallback onTap;
-
-  const _CompactNavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.primary,
-    required this.muted,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 21, color: selected ? primary : muted),
-              const SizedBox(height: 1),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? primary : muted,
-                ),
-              ),
-            ],
-          ),
+        bottomNavigationBar: ConciergeNavBar(
+          index: _index,
+          onSelect: (i) => setState(() => _index = i),
         ),
       ),
     );

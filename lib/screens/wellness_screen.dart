@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:cms/services/wellness_service.dart';
 import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 import 'package:cms/ui/mobadra_ui.dart';
 
 const Map<int, String> _weekdayLabels = {
@@ -142,7 +143,7 @@ class _WellnessScreenState extends State<WellnessScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.neutralSurface,
+      backgroundColor: EditorialPalette.canvas,
       appBar: MobadraAppBar(
         title: const Row(
           children: [
@@ -215,7 +216,7 @@ class _WellnessScreenState extends State<WellnessScreen> {
                         child: LinearProgressIndicator(
                           value: _waterGoal > 0 ? (_water / _waterGoal).clamp(0, 1) : 0,
                           minHeight: 12,
-                          backgroundColor: Colors.white.withValues(alpha: 0.7),
+                          backgroundColor: EditorialPalette.card,
                           color: const Color(0xFF0284C7),
                         ),
                       ),
@@ -304,7 +305,7 @@ class _WellnessScreenState extends State<WellnessScreen> {
                         child: LinearProgressIndicator(
                           value: _workoutGoal > 0 ? (_workout / _workoutGoal).clamp(0, 1) : 0,
                           minHeight: 12,
-                          backgroundColor: Colors.white.withValues(alpha: 0.75),
+                          backgroundColor: EditorialPalette.card,
                           color: const Color(0xFFEA580C),
                         ),
                       ),
@@ -332,7 +333,7 @@ class _WellnessScreenState extends State<WellnessScreen> {
                             ActionChip(
                               avatar: Icon(Icons.add_circle_outline_rounded, size: 18, color: cs.primary),
                               label: Text('+$add min', style: const TextStyle(fontWeight: FontWeight.w700)),
-                              backgroundColor: Colors.white,
+                              backgroundColor: EditorialPalette.card,
                               side: BorderSide(color: AppColors.tertiary.withValues(alpha: 0.5)),
                               onPressed: () async {
                                 await WellnessService.instance.addWorkoutMinutes(add);
@@ -419,7 +420,7 @@ class _WellnessHeroCard extends StatelessWidget {
                   height: 54,
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.95),
+                    color: EditorialPalette.card.withValues(alpha: 0.95),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
@@ -498,8 +499,8 @@ class _MedicineRemindersSection extends StatelessWidget {
             ),
             IconButton.filled(
               style: IconButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: EditorialPalette.ivory,
+                foregroundColor: EditorialPalette.ivoryInk,
               ),
               onPressed: onAddReminder,
               icon: const Icon(Icons.add_rounded),
@@ -513,7 +514,7 @@ class _MedicineRemindersSection extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: EditorialPalette.card,
               borderRadius: BorderRadius.circular(AppRadii.lg),
               border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
               boxShadow: [
@@ -549,7 +550,7 @@ class _MedicineRemindersSection extends StatelessWidget {
                 color: Colors.transparent,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: EditorialPalette.card,
                     borderRadius: BorderRadius.circular(AppRadii.lg),
                     border: Border.all(color: AppColors.secondary.withValues(alpha: 0.25)),
                     boxShadow: [

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cms/services/api_service.dart';
-import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 import 'package:cms/ui/mobadra_ui.dart';
 
 class BookingHistoryScreen extends StatefulWidget {
@@ -129,7 +129,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                color: AppColors.primaryContainer.withValues(alpha: 0.9),
+                                color: EditorialPalette.cardInner,
                                 child: ListTile(
                                   title: Text(
                                     hospital,
@@ -148,7 +148,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                         const Text(
                                           'Booked via app',
                                           style: TextStyle(
-                                            color: AppColors.primary,
+                                            color: EditorialPalette.headline,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -189,7 +189,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               if (a['notes'] != null && a['notes'].toString().trim().isNotEmpty)
                 Text('Notes: ${a['notes']}'),
               if (a['isMobileBooking'] == true)
-                const Text('Booked via mobile app', style: TextStyle(color: AppColors.primary)),
+                const Text('Booked via mobile app', style: TextStyle(color: EditorialPalette.headline)),
             ],
           ),
         ),

@@ -55,9 +55,9 @@ class _AuthGradientBackgroundState extends State<AuthGradientBackground>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFFDBECFF),
-                    Color(0xFFBFDDFD),
-                    Color(0xFF9EC9F6),
+                    Color(0xFF1A1612),
+                    Color(0xFF0C0C0C),
+                    Color(0xFF14110E),
                   ],
                   stops: [0.0, 0.45, 1.0],
                 ),
@@ -131,7 +131,7 @@ class _AuthBlobPainter extends CustomPainter {
 
     // moveVertical 30s
     final yVert = math.sin(tVertical * math.pi * 2) * h * 0.28;
-    _blob(canvas, Offset(w * 0.12, h * 0.32 + yVert), w * 0.58, const Color(0xFF93C5FD), 0.34);
+    _blob(canvas, Offset(w * 0.12, h * 0.32 + yVert), w * 0.58, const Color(0xFFE7D3BE), 0.22);
 
     // moveInCircle 20s reverse
     final a1 = -tCircleShort * math.pi * 2;
@@ -139,7 +139,7 @@ class _AuthBlobPainter extends CustomPainter {
       canvas,
       Offset(w * 0.48 + math.cos(a1) * w * 0.22, h * 0.42 + math.sin(a1) * h * 0.18),
       w * 0.48,
-      const Color(0xFF60A5FA),
+      const Color(0xFFC9A27C),
       0.30,
     );
 
@@ -149,13 +149,13 @@ class _AuthBlobPainter extends CustomPainter {
       canvas,
       Offset(w * 0.78 + math.cos(a2) * w * 0.16, h * 0.28 + math.sin(a2) * h * 0.22),
       w * 0.42,
-      const Color(0xFF2563EB),
+      const Color(0xFF8A735C),
       0.28,
     );
 
     // moveHorizontal 40s
     final xHoriz = math.sin(tHorizontal * math.pi * 2) * w * 0.32;
-    _blob(canvas, Offset(w * 0.52 + xHoriz, h * 0.68), w * 0.52, const Color(0xFF38BDF8), 0.30);
+    _blob(canvas, Offset(w * 0.52 + xHoriz, h * 0.68), w * 0.52, const Color(0xFFF3E6D8), 0.16);
 
     // moveInCircle 20s
     final a3 = tCircleFifth * math.pi * 2;
@@ -163,7 +163,7 @@ class _AuthBlobPainter extends CustomPainter {
       canvas,
       Offset(w * 0.28 + math.cos(a3) * w * 0.26, h * 0.55 + math.sin(a3) * h * 0.2),
       w * 0.38,
-      const Color(0xFF7DD3FC),
+      const Color(0xFFA8886C),
       0.24,
     );
   }

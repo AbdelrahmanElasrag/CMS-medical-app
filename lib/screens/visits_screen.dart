@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'package:cms/services/api_service.dart';
+import 'package:cms/services/auth_service.dart';
 import 'package:cms/theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
+import 'package:cms/ui/booking_auth_prompt.dart';
 import 'package:cms/ui/mobadra_ui.dart';
 
 class VisitsScreen extends StatefulWidget {
@@ -15,6 +19,8 @@ class VisitsScreen extends StatefulWidget {
 class _VisitsScreenState extends State<VisitsScreen> {
   bool _loading = true;
   String? _error;
+  bool _signedIn = false;
+  bool _authKnown = false;
   List<Map<String, dynamic>> _appointments = [];
   DateTime _focused = DateTime.now();
   DateTime? _selected;
@@ -23,10 +29,28 @@ class _VisitsScreenState extends State<VisitsScreen> {
   void initState() {
     super.initState();
     _selected = DateTime(_focused.year, _focused.month, _focused.day);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final signedIn = Provider.of<AuthService>(context).isLoggedIn;
+    if (_authKnown && signedIn == _signedIn) return;
+    _authKnown = true;
+    _signedIn = signedIn;
     _load();
   }
 
   Future<void> _load() async {
+    if (!_signedIn) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = null;
+        _appointments = [];
+      });
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
@@ -49,7 +73,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
       if (mounted) {
         setState(() {
           _appointments = [];
-          _error = e.toString();
+          _error = _visitLoadMessage(e);
           _loading = false;
         });
       }
@@ -101,7 +125,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
     }
     if (s.contains('pend') || s.contains('wait')) return const Color(0xFFD97706);
     if (s.contains('cancel')) return const Color(0xFFDC2626);
-    return AppColors.primary;
+    return EditorialPalette.ivory;
   }
 
   static IconData _statusIcon(String? status) {
@@ -180,13 +204,13 @@ class _VisitsScreenState extends State<VisitsScreen> {
     final dateLabel = DateFormat('EEEE, MMM d').format(selectedDay);
 
     return Scaffold(
-      backgroundColor: AppColors.neutralSurface,
+      backgroundColor: Colors.transparent,
       appBar: MobadraAppBar(
         title: const Row(
           children: [
             Icon(Icons.calendar_month_rounded, size: 26),
             SizedBox(width: 10),
-            Text('My visits'),
+            Text('Appointments'),
           ],
         ),
         actions: [
@@ -197,7 +221,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
           ),
         ],
       ),
-      body: _loading
+      body: _loading && _signedIn
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -205,79 +229,40 @@ class _VisitsScreenState extends State<VisitsScreen> {
                   SizedBox(
                     width: 48,
                     height: 48,
-                    child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary),
+                    child: CircularProgressIndicator(strokeWidth: 3, color: EditorialPalette.ivory),
                   ),
                   const SizedBox(height: 16),
-                  Text('Loading your visits…', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                  const Text('Loading your visits…', style: TextStyle(color: EditorialPalette.muted, fontWeight: FontWeight.w500)),
                 ],
               ),
             )
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(28),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEE2E2),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(color: Colors.red.withValues(alpha: 0.15), blurRadius: 16),
-                            ],
-                          ),
-                          child: const Icon(Icons.cloud_off_rounded, size: 48, color: Color(0xFFDC2626)),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          'Couldn\'t load visits',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade700, height: 1.35)),
-                        const SizedBox(height: 24),
-                        ShadButton(
-                          onPressed: _load,
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.refresh_rounded, size: 20, color: Colors.white),
-                              SizedBox(width: 8),
-                              Text('Try again'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : RefreshIndicator(
-                  color: AppColors.primary,
+          : RefreshIndicator(
+                  color: EditorialPalette.ivory,
                   onRefresh: _load,
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(AppSpacing.md, 16, AppSpacing.md, 32),
                     children: [
+                      if (!_signedIn)
+                        _VisitNotice(
+                          icon: Icons.lock_outline_rounded,
+                          title: 'Sign in to see your appointments',
+                          message: 'Your upcoming visits appear here after you sign in.',
+                          actionLabel: 'Sign in',
+                          onAction: () => showBookingAuthPrompt(context),
+                        ),
+                      if (_signedIn && _error != null)
+                        _VisitNotice(
+                          icon: Icons.cloud_off_rounded,
+                          title: 'Visits are unavailable',
+                          message: _error!,
+                          actionLabel: 'Try again',
+                          onAction: _load,
+                        ),
                       Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(AppRadii.lg),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white,
-                              AppColors.primaryContainer.withValues(alpha: 0.65),
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.12),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
+                          borderRadius: BorderRadius.circular(22),
+                          color: EditorialPalette.card,
+                          border: Border.all(color: const Color(0xFF2E2E30)),
                         ),
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                         child: TableCalendar<void>(
@@ -289,39 +274,38 @@ class _VisitsScreenState extends State<VisitsScreen> {
                             final k = DateTime(d.year, d.month, d.day);
                             return _daysWithVisits.contains(k) ? [null] : [];
                           },
-                          calendarStyle: CalendarStyle(
+                          calendarStyle: const CalendarStyle(
                             outsideDaysVisible: false,
-                            weekendTextStyle: TextStyle(color: Colors.grey.shade700),
+                            defaultTextStyle: TextStyle(color: EditorialPalette.headline),
+                            weekendTextStyle: TextStyle(color: EditorialPalette.muted),
                             todayDecoration: BoxDecoration(
-                              color: AppColors.secondary.withValues(alpha: 0.35),
+                              color: EditorialPalette.cardInner,
                               shape: BoxShape.circle,
                             ),
-                            todayTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary),
-                            selectedDecoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.primary, Color(0xFF0078D4)],
-                              ),
+                            todayTextStyle: TextStyle(fontWeight: FontWeight.w700, color: EditorialPalette.headline),
+                            selectedDecoration: BoxDecoration(
+                              color: EditorialPalette.ivory,
                               shape: BoxShape.circle,
                             ),
-                            selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-                            markerDecoration: const BoxDecoration(
-                              color: AppColors.tertiary,
+                            selectedTextStyle: TextStyle(color: EditorialPalette.ivoryInk, fontWeight: FontWeight.w700),
+                            markerDecoration: BoxDecoration(
+                              color: EditorialPalette.ivory,
                               shape: BoxShape.circle,
                             ),
-                            defaultDecoration: const BoxDecoration(shape: BoxShape.circle),
+                            defaultDecoration: BoxDecoration(shape: BoxShape.circle),
                           ),
-                          daysOfWeekStyle: DaysOfWeekStyle(
-                            weekdayStyle: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12),
-                            weekendStyle: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w700, fontSize: 12),
+                          daysOfWeekStyle: const DaysOfWeekStyle(
+                            weekdayStyle: TextStyle(color: EditorialPalette.muted, fontWeight: FontWeight.w600, fontSize: 12),
+                            weekendStyle: TextStyle(color: EditorialPalette.navMuted, fontWeight: FontWeight.w600, fontSize: 12),
                           ),
                           headerStyle: HeaderStyle(
                             formatButtonVisible: false,
                             titleCentered: true,
-                            leftChevronIcon: Icon(Icons.chevron_left_rounded, color: AppColors.primary, size: 28),
-                            rightChevronIcon: Icon(Icons.chevron_right_rounded, color: AppColors.primary, size: 28),
+                            leftChevronIcon: const Icon(Icons.chevron_left_rounded, color: EditorialPalette.headline, size: 28),
+                            rightChevronIcon: const Icon(Icons.chevron_right_rounded, color: EditorialPalette.headline, size: 28),
                             titleTextStyle: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                  color: EditorialPalette.headline,
                                 ),
                           ),
                           onDaySelected: (selected, focused) {
@@ -339,12 +323,10 @@ class _VisitsScreenState extends State<VisitsScreen> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.secondary.withValues(alpha: 0.35), AppColors.primary.withValues(alpha: 0.2)],
-                              ),
+                              color: EditorialPalette.cardInner,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.today_rounded, color: AppColors.primary, size: 22),
+                            child: const Icon(Icons.today_rounded, color: EditorialPalette.headline, size: 22),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -355,18 +337,18 @@ class _VisitsScreenState extends State<VisitsScreen> {
                                   dateLabel,
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                         fontWeight: FontWeight.w800,
-                                        color: AppColors.primary,
+                                        color: EditorialPalette.ivory,
                                       ),
                                 ),
-                                Text(
+                                const Text(
                                   'Visits scheduled for this day',
-                                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                                  style: TextStyle(fontSize: 12.5, color: EditorialPalette.muted, fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
                           ),
                         ],
-                      ),
+                      ).mobadraFadeSlide(delayMs: 70),
                       const SizedBox(height: 14),
                       ...(() {
                         final list = _forDay(selectedDay);
@@ -376,98 +358,167 @@ class _VisitsScreenState extends State<VisitsScreen> {
                               margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: EditorialPalette.card,
                                 borderRadius: BorderRadius.circular(AppRadii.lg),
-                                border: Border.all(color: Colors.grey.shade200),
+                                border: Border.all(color: const Color(0xFF2E2E30)),
                               ),
                               child: Column(
                                 children: [
-                                  Icon(Icons.event_available_rounded, size: 44, color: Colors.grey.shade400),
+                                  const Icon(Icons.event_available_rounded, size: 44, color: EditorialPalette.navMuted),
                                   const SizedBox(height: 12),
                                   Text(
                                     'No visits on this day',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 16,
-                                      color: Colors.grey.shade700,
+                                      color: EditorialPalette.muted,
                                     ),
                                   ),
                                   const SizedBox(height: 6),
-                                  Text(
+                                  const Text(
                                     'Pick another date or pull to refresh',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                                    style: TextStyle(color: EditorialPalette.navMuted, fontSize: 13),
                                   ),
                                 ],
                               ),
-                            ),
+                            ).mobadraFadeSlide(delayMs: 90),
                           ];
                         }
-                        return list
-                            .map((a) => _VisitTileCard(
-                                  appointment: a,
-                                  onTap: () => _showDetails(context, a),
-                                  statusColor: _statusColor,
-                                  statusIcon: _statusIcon,
-                                ))
-                            .toList();
+                        return [
+                          for (var i = 0; i < list.length; i++)
+                            _VisitTileCard(
+                              appointment: list[i],
+                              onTap: () => _showDetails(context, list[i]),
+                              statusColor: _statusColor,
+                              statusIcon: _statusIcon,
+                            ).mobadraFadeSlide(delayMs: 50 * i),
+                        ];
                       })(),
                       const SizedBox(height: 28),
                       Row(
                         children: [
-                          Icon(Icons.list_alt_rounded, color: AppColors.tertiary, size: 24),
+                          const Icon(Icons.list_alt_rounded, color: EditorialPalette.headline, size: 24),
                           const SizedBox(width: 8),
                           Text(
                             'All appointments',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
+                                  color: EditorialPalette.ivory,
                                 ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (_appointments.isEmpty)
+                      if (_signedIn && _error == null && _appointments.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                AppColors.primaryContainer.withValues(alpha: 0.5),
-                                AppColors.secondaryContainer.withValues(alpha: 0.4),
+                                EditorialPalette.card,
+                                EditorialPalette.cardInner,
                               ],
                             ),
                             borderRadius: BorderRadius.circular(AppRadii.lg),
                           ),
                           child: Column(
                             children: [
-                              Icon(Icons.calendar_today_outlined, size: 40, color: AppColors.primary.withValues(alpha: 0.65)),
+                              Icon(Icons.calendar_today_outlined, size: 40, color: EditorialPalette.ivory.withValues(alpha: 0.65)),
                               const SizedBox(height: 12),
-                              Text(
+                              const Text(
                                 'No appointments yet',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Colors.grey.shade800),
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: EditorialPalette.headline),
                               ),
                               const SizedBox(height: 6),
-                              Text(
+                              const Text(
                                 'When you book through Mobadra, they\'ll show up here.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.grey.shade600, height: 1.35),
+                                style: TextStyle(color: EditorialPalette.muted, height: 1.35),
                               ),
                             ],
                           ),
                         )
                       else
-                        ..._appointments.map((a) => _VisitTileCard(
-                              appointment: a,
-                              onTap: () => _showDetails(context, a),
+                        ...[
+                          for (var i = 0; i < _appointments.length; i++)
+                            _VisitTileCard(
+                              appointment: _appointments[i],
+                              onTap: () => _showDetails(context, _appointments[i]),
                               statusColor: _statusColor,
                               statusIcon: _statusIcon,
                               showDateInSubtitle: true,
-                            )),
+                            ).mobadraFadeSlide(delayMs: 40 * i),
+                        ],
                     ],
                   ),
                 ),
     );
+  }
+}
+
+String _visitLoadMessage(Object error) {
+  if (error is ApiException && error.statusCode == 401) {
+    return 'Sign in again to see your appointments.';
+  }
+  final raw = error.toString();
+  if (raw.contains('Failed to fetch') || raw.contains('Network error') || raw.contains('ClientException')) {
+    return 'The care service isn’t reachable right now. You can still browse the calendar, then try again.';
+  }
+  return 'Visits could not be loaded. Try again in a moment.';
+}
+
+class _VisitNotice extends StatelessWidget {
+  const _VisitNotice({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+        decoration: BoxDecoration(
+          color: EditorialPalette.card,
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          border: Border.all(color: const Color(0xFF2E2E30)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 28, color: EditorialPalette.headline),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: EditorialPalette.headline),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: EditorialPalette.muted, height: 1.35),
+            ),
+            const SizedBox(height: 12),
+            ShadButton(
+              onPressed: onAction,
+              child: Text(actionLabel),
+            ),
+          ],
+        ),
+      ),
+    ).mobadraFadeSlide();
   }
 }
 
@@ -491,15 +542,15 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: AppColors.primary.withValues(alpha: 0.85)),
+          Icon(icon, size: 20, color: EditorialPalette.ivory.withValues(alpha: 0.85)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600, letterSpacing: 0.3)),
+                Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: EditorialPalette.muted, letterSpacing: 0.3)),
                 const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: valueColor ?? Colors.grey.shade900, height: 1.25)),
+                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: valueColor ?? EditorialPalette.headline, height: 1.25)),
               ],
             ),
           ),
@@ -547,11 +598,11 @@ class _VisitTileCard extends StatelessWidget {
           child: Ink(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadii.lg),
-              color: Colors.white,
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+              color: EditorialPalette.card,
+              border: Border.all(color: EditorialPalette.ivory.withValues(alpha: 0.1)),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.06),
+                  color: EditorialPalette.ivory.withValues(alpha: 0.06),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -567,7 +618,7 @@ class _VisitTileCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [AppColors.primary, AppColors.secondary],
+                      colors: [EditorialPalette.ivory, EditorialPalette.portrait],
                     ),
                   ),
                 ),
@@ -582,10 +633,10 @@ class _VisitTileCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryContainer,
+                                color: EditorialPalette.cardInner,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.local_hospital_rounded, color: AppColors.primary, size: 22),
+                              child: const Icon(Icons.local_hospital_rounded, color: EditorialPalette.ivory, size: 22),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -601,14 +652,14 @@ class _VisitTileCard extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Icon(Icons.medical_information_outlined, size: 14, color: Colors.grey.shade600),
+                                      const Icon(Icons.medical_information_outlined, size: 14, color: EditorialPalette.muted),
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
                                           showDateInSubtitle && scheduledDate != null
                                               ? '${DateFormat.yMMMd().format(scheduledDate)} · $speciality'
                                               : speciality,
-                                          style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                                          style: TextStyle(color: EditorialPalette.muted, fontSize: 13),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -658,7 +709,7 @@ class _VisitTileCard extends StatelessWidget {
                                     Text(
                                       'App booking',
                                       style: TextStyle(
-                                        color: AppColors.primary,
+                                        color: EditorialPalette.ivory,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 12,
                                       ),
@@ -674,7 +725,7 @@ class _VisitTileCard extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
+                  child: const Icon(Icons.chevron_right_rounded, color: EditorialPalette.navMuted),
                 ),
               ],
             ),

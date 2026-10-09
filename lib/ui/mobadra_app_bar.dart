@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-import '../theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 
-/// App bar styling aligned with the home tab header (primary blue, white text, bottom hairline + shadow).
+/// Flat editorial bar for interior screens. Home uses its own header.
 class MobadraAppBar extends StatelessWidget implements PreferredSizeWidget {
   const MobadraAppBar({
     super.key,
@@ -20,11 +21,7 @@ class MobadraAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool centerTitle;
   final double toolbarHeight;
 
-  static Color backgroundColorFor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF003D7A)
-        : AppColors.primary;
-  }
+  static Color backgroundColorFor(BuildContext context) => EditorialPalette.canvas;
 
   @override
   Size get preferredSize => Size.fromHeight(toolbarHeight);
@@ -32,46 +29,31 @@ class MobadraAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final bg = backgroundColorFor(context);
-    final titleStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-        );
+    final titleStyle = GoogleFonts.cormorantGaramond(
+      color: EditorialPalette.headline,
+      fontWeight: FontWeight.w500,
+      fontSize: 26,
+    );
 
     return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.35),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+      color: bg,
       child: AppBar(
         toolbarHeight: toolbarHeight,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        iconTheme: IconThemeData(color: Colors.white.withValues(alpha: 0.95)),
-        actionsIconTheme: IconThemeData(color: Colors.white.withValues(alpha: 0.95)),
+        foregroundColor: EditorialPalette.headline,
+        iconTheme: const IconThemeData(color: EditorialPalette.headline),
+        actionsIconTheme: const IconThemeData(color: EditorialPalette.headline),
         titleTextStyle: titleStyle,
         surfaceTintColor: Colors.transparent,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: bg,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-        ),
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         centerTitle: centerTitle,
         leading: leading,
         title: DefaultTextStyle.merge(
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: titleStyle?.fontSize ?? 20),
+          style: titleStyle,
           child: IconTheme.merge(
-            data: IconThemeData(color: Colors.white.withValues(alpha: 0.95), size: 24),
+            data: const IconThemeData(color: EditorialPalette.headline, size: 24),
             child: title,
           ),
         ),

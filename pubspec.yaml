@@ -44,9 +44,8 @@ dependencies:
   table_calendar: ^3.1.2
   flutter_local_notifications: ^17.2.3
   timezone: ^0.9.4
-  # 0.29+ forwards FormField.onReset (needs newer Flutter); 0.30.0 breaks Brightness import in color_scheme/base.
-  # Stay on 0.28.x for Flutter 3.32.x. Use >=0.30.1 with Flutter >=3.35 when you upgrade the SDK.
-  shadcn_ui: ">=0.28.0 <0.29.0"
+  # Use >=0.30.1 with Flutter >=3.35 (this machine: Flutter 3.47).
+  shadcn_ui: ^0.30.1
   flutter_animate: ^4.5.2
 
   flutter:
@@ -59,6 +58,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   icons_plus: ^5.0.0
+  video_player: ^2.14.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -69,6 +69,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+dependency_overrides:
+  # shadcn_ui still resolves an older lucide that extends IconData (broken on Flutter 3.47+).
+  lucide_icons_flutter: 3.1.20
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_tokens.dart';
+import 'package:cms/theme/concierge_theme.dart';
 
 /// Soft filled field matching reference auth cards (light grey pill).
 InputDecoration authFilledDecoration({
@@ -8,13 +8,12 @@ InputDecoration authFilledDecoration({
   Widget? prefixIcon,
   Widget? suffixIcon,
 }) {
-  const fill = Color(0xFFF3F4F6);
-  const radius = 12.0;
+  const radius = 16.0;
   return InputDecoration(
     hintText: hintText,
-    hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 15),
+    hintStyle: const TextStyle(color: EditorialPalette.navMuted, fontSize: 15),
     filled: true,
-    fillColor: fill,
+    fillColor: EditorialPalette.card,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(radius),
@@ -26,7 +25,7 @@ InputDecoration authFilledDecoration({
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(radius),
-      borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.55), width: 1.5),
+      borderSide: const BorderSide(color: EditorialPalette.ivory, width: 1.5),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(radius),
@@ -39,7 +38,7 @@ InputDecoration authFilledDecoration({
     prefixIcon: prefixIcon == null
         ? null
         : IconTheme(
-            data: IconThemeData(color: Colors.grey.shade600, size: 22),
+            data: const IconThemeData(color: EditorialPalette.muted, size: 22),
             child: prefixIcon,
           ),
     suffixIcon: suffixIcon,
@@ -56,7 +55,7 @@ Widget authCapsLabel(String text) {
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.7,
-        color: AppColors.primary,
+        color: EditorialPalette.headline,
       ),
     ),
   );
@@ -71,7 +70,7 @@ Widget authFieldLabel(String text) {
       style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w700,
-        color: Colors.grey.shade800,
+        color: EditorialPalette.headline,
       ),
     ),
   );
